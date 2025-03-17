@@ -1,0 +1,13 @@
+# AQUARIUM.HB <img src="./vignettes/images/logo.png" align = "right" width = "150" />
+
+AQUARIUM.HB is an R package for identify, annotate, quantify, and analyze human blood circular RNAs from RNA-seq data.
+
+# Installation
+### Option 1: Install from GitHub
+
+You can install the package directly from GitHub,
+```r
+# install.packages("devtools")
+devtools::install_github("shaoxunyuan/AQUARIUM.HB")
+```
+
