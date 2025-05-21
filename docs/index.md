@@ -22,7 +22,7 @@ AQUARIUMHB is an integrated computational pipeline designed for comprehensive an
 
 ## 2. Installation  
 
-[Installation instructions will be provided here]  
+install.packages("AQUARIUMHB") 
 
 ## 3. Quick Start with Example Data  
 
