@@ -1,4 +1,4 @@
-# AQUARIUMHB <img src="./docs/logo.png" align = "right" width = "150" />
+# AQUARIUMHB 
 
 AQUARIUMHB is a comprehesive toolkit for identify, annotate, quantify, and analyze human blood circular RNAs from RNA-seq data.
 
