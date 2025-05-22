@@ -5,7 +5,8 @@
 1. [Introduction](#1-introduction)  
 2. [Quick Start with Example Data](#2-quick-start-with-example-data)  
 3. [Data Preprocessing](#3-data-preprocessing)  
-4. [Author Information](#4-author-information)
+4. [Identify circular RNAs using CIRI-full](#4-identify-circular-rnas-using-ciri-full)  
+5. [Author Information](#4-author-information)
 
 ## 1. Introduction
 
@@ -34,17 +35,25 @@ For detailed sample information, please visit:  [GSE108887](https://www.ncbi.nlm
    
    ```bash
    for sra in SRR{6450118..6450129}.sra; do
+   
        fasterq-dump --split-3 "$sra" 
+       
    done
    ```
 
 ## 3. Align Paired-End Reads to Reference Genome
 
 ```bash
+# Path of reference genome and annotation, index files for reference genome must  made first using `bwa index`
+
 fa=Homo_sapiens.GRCh38.dna_sm.chromosomes.fa
+
 gtf=Homo_sapiens.GRCh38.94.chr.gtf
+
 BioSample=SRR6450118
+
 bwa mem -T 10 ${fa} ${BioSample}_1.fastq ${BioSample}_2.fastq-o ${BioSample}/full/align.sam"
+
 ```
 
 ## 4. Identify circular RNAs using [CIRI-full](https://ciri-cookbook.readthedocs.io/en/latest/CIRI-full.html#)
@@ -52,25 +61,35 @@ bwa mem -T 10 ${fa} ${BioSample}_1.fastq ${BioSample}_2.fastq-o ${BioSample}/ful
 ```bash
 # Choose multi-threading based on the specific situation.
 THREAD_COUNT=8 
+
 # Path of reference genome, index files must  made first using `bwa index`
 fa=Homo_sapiens.GRCh38.dna_sm.chromosomes.fa
+
 # Path of reference annotation
 gtf=Homo_sapiens.GRCh38.94.chr.gtf
+
 # Use SRR6450118 as example
 BioSample=SRR6450118
 dir_detect=${BioSample}/full; mkdir -p ${dir_detect}
+
 # CIRI2: Circular RNA identification based on multiple seed matching
 perl CIRI2.pl --in ${dir_detect}/align.sam --out ${dir_detect}/ciri.report --ref_file ${fa} --anno ${gtf} --thread_num $THREAD_COUNT
+
 # CIRI-AS is a detection tool for circRNA internal components and alternative splicing events.
 perl CIRI-AS.pl --sam ${dir_detect}/align.sam --ciri ${dir_detect}/ciri.report --out ${dir_detect}/as --ref_file ${fa} --anno ${gtf} --output_all yes
+
 # The CIRI-full Pipeline module is an automatic pipeline for detecting and reconstructing circRNAs.
 java -jar $CIRI-full.jar RO1 -1 ${BioSample}_1.fastq.gz -2 ${BioSample}_2.fastq.gz -o ${dir_detect}/full -t $THREAD_COUNT
+
 bwa mem -T 19 -t $THREAD_COUNT ${fa} ${dir_detect}/full_ro1.fq -o ${dir_detect}/full_ro1.sam -t $THREAD_COUNT
+
 java -jar ${scriptdir}/CIRI-full.jar RO2 -r ${fa} -s ${dir_detect}/full_ro1.sam -l 150 -o ${dir_detect}/full
+
 java -jar ${scriptdir}/CIRI-full.jar Merge -r ${fa} -a ${gtf} -c ${dir_detect}/ciri.report -as ${dir_detect}/as_jav.list -ro ${dir_detect}/full_ro2_info.list -o ${dir_detect}/full
+
 ```
 
-## 4. Author information
+## 5. Author information
 
 * **Author**: Shaoxun Yuan  
 * **Affiliation**: School of Artificial Intelligence and Information Technology, Nanjing University of Chinese Medicine, China  
