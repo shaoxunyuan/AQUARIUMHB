@@ -101,7 +101,7 @@ dir_vis=${BioSample}/vis
 
 mkdir -p ${dir_vis}
 
-java -jar ${scriptdir}/CIRI-vis.jar -i ${dir_detect}/full_merge_circRNA_detail.anno -l ${dir_detect}/as_library_length.list -d ${dir_vis} -r ${fa} -min 1
+java -jar CIRI-vis.jar -i ${dir_detect}/full_merge_circRNA_detail.anno -l ${dir_detect}/as_library_length.list -d ${dir_vis} -r ${fa} -min 1
 ```
 
 ## 6. Author information
