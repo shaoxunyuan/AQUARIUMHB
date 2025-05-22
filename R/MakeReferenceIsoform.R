@@ -10,7 +10,7 @@
 #' 
 #' @importFrom data.table fread setnames
 #' @importFrom dplyr count
-#' @importFrom plyr %>%
+#' @import plyr
 #' 
 #' @export
 #' 
