@@ -54,7 +54,7 @@ gtf=Homo_sapiens.GRCh38.94.chr.gtf
 
 BioSample=SRR6450118
 
-bwa mem -T 10 ${fa} ${BioSample}_1.fastq ${BioSample}_2.fastq -o ${BioSample}/full/align.sam"
+bwa mem -T 10 ${fa} ${BioSample}_1.fastq ${BioSample}_2.fastq -o ${BioSample}/full/align.sam
 
 ```
 
@@ -90,7 +90,8 @@ java -jar ${scriptdir}/CIRI-full.jar Merge -r ${fa} -a ${gtf} -c ${dir_detect}/c
 
 Output files in ```dir_detect```  for subsequent analysis, circRNA information at BSJ levels
 
-```SRR6450118/full/ciri.report
+```
+SRR6450118/full/ciri.report
 SRR6450119/full/ciri.report
 SRR6450120/full/ciri.report
 SRR6450121/full/ciri.report
@@ -118,7 +119,8 @@ java -jar CIRI-vis.jar -i ${dir_detect}/full_merge_circRNA_detail.anno -l ${dir_
 
 Output files in ```dir_vis```  for subsequent analysis, circRNA information at isoform levels
 
-```SRR6450118/vis/stout.list
+```
+SRR6450118/vis/stout.list
 SRR6450119/vis/stout.list
 SRR6450120/vis/stout.list
 SRR6450121/vis/stout.list
@@ -133,7 +135,7 @@ SRR6450129/vis/stout.list
 ```
 
 
-## 6. Reconstruction of patial-length circRNAs
+## 6. Reconstruction of partial-length circRNAs
 
 
 ## 7. Author information
