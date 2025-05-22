@@ -7,7 +7,7 @@
 3. [Data Preprocessing](#3-data-preprocessing)  
 4. [Identify circular RNAs using CIRI-full](#4-identify-circular-rnas-using-ciri-full)  
 5. [Visualize and estimate abundance of isoforms using CIRI-vis](#5-visualize-and-estimate-abundance-of-isoforms-using-ciri-vis)  
-6. [Author Information](#4-author-information)
+6. [Author Information](#6-author-information)
 
 ## 1. Introduction
 
@@ -53,7 +53,7 @@ gtf=Homo_sapiens.GRCh38.94.chr.gtf
 
 BioSample=SRR6450118
 
-bwa mem -T 10 ${fa} ${BioSample}_1.fastq ${BioSample}_2.fastq-o ${BioSample}/full/align.sam"
+bwa mem -T 10 ${fa} ${BioSample}_1.fastq ${BioSample}_2.fastq -o ${BioSample}/full/align.sam"
 
 ```
 
