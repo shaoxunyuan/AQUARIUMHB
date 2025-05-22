@@ -5,7 +5,6 @@
 #' 
 #' @param datadir Path to the directory containing input data files
 #' @param outputfile Path to the output file where results will be saved
-#' @param loadDataFunction Function to load external datasets (default: loadLongIsoformFiles)
 #' 
 #' @return A data frame containing the combined and processed reference isoforms
 #' 
@@ -19,12 +18,12 @@
 #' \dontrun{
 #' MakeReferenceIsoform("PRJNA429023", "ReferenceIsoformFinal.txt")
 #' }
-MakeReferenceIsoform <- function(datadir, outputfile, loadDataFunction = loadLongIsoformFiles) {
+MakeReferenceIsoform <- function(datadir, outputfile) {
   message("Starting reference isoform generation...")
   
   # Load external datasets
   message("Loading external datasets...")
-  loadDataFunction()
+  loadLongIsoformFiles()
   FLcircAS <- as.data.frame(FLcircAS)
   IsoCirc <- as.data.frame(IsoCirc)
   
