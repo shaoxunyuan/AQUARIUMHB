@@ -10,7 +10,6 @@
 #' 
 #' @import data.table
 #' @import dplyr
-#' @importFrom plyr count
 #' 
 #' @export
 #' 
@@ -104,12 +103,29 @@ MakeReferenceIsoform <- function(datadir, outputfile) {
   for (i in seq_along(stout.list.path)) {
     message(sprintf("Processing file %d of %d: %s", i, length(stout.list.path), stout.list.path[i]))
     
-    stout.list <- fread(stout.list.path[i], data.table = FALSE)
-    names(stout.list) <- c("Image_ID", "bsj", "chr", "start", "end", "total_exp",
-                          "isoform_number", "isoform_exp", "isoform_length",
-                          "isoform_state", "strand", "gene_id", "isoform_cirexon")
+    # 读取文件，header=TRUE表示使用第一行作为列名
+    stout.list <- fread(stout.list.path[i], data.table = FALSE, header = TRUE)
     
-    # Select relevant columns
+    # 定义完整的列名向量
+    expected_cols <- c("Image_ID", "bsj", "chr", "start", "end", "total_exp",
+                      "isoform_number", "isoform_exp", "isoform_length",
+                      "isoform_state", "strand", "gene_id", "isoform_cirexon")
+    
+    # 使用setnames设置列名，处理可能的列数不匹配问题
+    if (ncol(stout.list) == length(expected_cols)) {
+      setnames(stout.list, expected_cols)
+    } else if (ncol(stout.list) == length(expected_cols) - 1) {
+      # 如果缺少一列，添加默认列名
+      warning(sprintf("File %s has %d columns but expected %d. Adding default column name.", 
+                     stout.list.path[i], ncol(stout.list), length(expected_cols)))
+      setnames(stout.list, c("V1", expected_cols[-1]))  # 添加"V1"作为第一列名
+    } else {
+      # 其他情况，抛出错误
+      stop(sprintf("Unexpected number of columns (%d) in file %s", 
+                  ncol(stout.list), stout.list.path[i]))
+    }
+    
+    # 选择需要的列
     stout.list <- stout.list[, c("chr", "bsj", "start", "end", "isoform_state", "strand", "isoform_cirexon")]
     stout.list.all.list[[i]] <- stout.list
   }
@@ -176,5 +192,5 @@ MakeReferenceIsoform <- function(datadir, outputfile) {
               sep = "\t", quote = FALSE, col.names = TRUE, append = FALSE, row.names = FALSE)
   
   message("Reference isoform generation completed successfully!")
-  return(ReferenceIsoform_Long_And_Full)
+  #return(ReferenceIsoform_Long_And_Full)
 }    
