@@ -8,8 +8,9 @@
 #' 
 #' @return A data frame containing the combined and processed reference isoforms
 #' 
+#' @importFrom data.table fread
 #' @import dplyr
-#' @import data.table
+#' @importFrom plyr count
 #' 
 #' @export
 #' 
