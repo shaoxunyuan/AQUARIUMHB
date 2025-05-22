@@ -63,13 +63,7 @@ bwa mem -T 10 ${fa} ${BioSample}_1.fastq ${BioSample}_2.fastq -o ${BioSample}/fu
 # Choose multi-threading based on the specific situation.
 THREAD_COUNT=8 
 
-# Path of reference genome, index files must  made first using `bwa index`
-fa=Homo_sapiens.GRCh38.dna_sm.chromosomes.fa
-
-# Path of reference annotation
-gtf=Homo_sapiens.GRCh38.94.chr.gtf
-
-# Use SRR6450118 as example
+# Use SRR6450118 as an example
 BioSample=SRR6450118
 
 dir_detect=${BioSample}/full
@@ -93,6 +87,11 @@ java -jar ${scriptdir}/CIRI-full.jar Merge -r ${fa} -a ${gtf} -c ${dir_detect}/c
 
 ```
 
+Output files in ```dir_detect```  for subsequent analysis:
+
+```ciri.report``` , circRNA information at BSJ levels
+
+
 ## 5. Visualize and estimate abundance of isoforms using [CIRI-vis](https://ciri-cookbook.readthedocs.io/en/latest/CIRI-vis.html)
 
 ```bash
@@ -103,6 +102,10 @@ mkdir -p ${dir_vis}
 
 java -jar CIRI-vis.jar -i ${dir_detect}/full_merge_circRNA_detail.anno -l ${dir_detect}/as_library_length.list -d ${dir_vis} -r ${fa} -min 1
 ```
+
+Output files in ```dir_vis```  for subsequent analysis:
+
+```stout.list``` , circRNA information at isoform levels
 
 ## 6. Author information
 
