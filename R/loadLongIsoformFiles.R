@@ -2,8 +2,8 @@
 #'
 #' Loads two specified .RData files located in the package's inst/reference directory.
 #'
-#' @param file1 Name of the first .RData file (without path). Defaults to "Isocirc.final.RData".
-#' @param file2 Name of the second .RData file (without path). Defaults to "FlicricAS.final.RData".
+#' @param file1 Name of the first .RData file (without path). Defaults to "FLcircAS.final.RData".
+#' @param file2 Name of the second .RData file (without path). Defaults to "IsoCirc.final.RData".
 #' @param package Name of the package. Defaults to "AQUARIUMHB".
 #' @return Invisible NULL. The function loads data into the environment rather than returning it.
 #' @export
@@ -13,8 +13,8 @@
 #' 
 #' # Load custom files from another package
 #' loadLongIsoformFiles("custom1.RData", "custom2.RData", package = "MyPackage")
-loadLongIsoformFiles <- function(file1 = "Isocirc.final.RData", 
-                                 file2 = "FlicricAS.final.RData",
+loadLongIsoformFiles <- function(file1 = "FLcircAS.final.RData", 
+                                 file2 = "IsoCirc.final.RData",
                                  package = "AQUARIUMHB") {
   # Construct full paths using system.file()
   path1 <- system.file("reference", file1, package = package, mustWork = FALSE)
