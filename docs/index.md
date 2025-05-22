@@ -5,9 +5,10 @@
 1. [Introduction](#1-introduction)  
 2. [Quick Start with Example Data](#2-quick-start-with-example-data)  
 3. [Data Preprocessing](#3-data-preprocessing)  
-4. [Identify circular RNAs using CIRI-full](#4-identify-circular-rnas-using-ciri-full)  
-5. [Visualize and estimate abundance of isoforms using CIRI-vis](#5-visualize-and-estimate-abundance-of-isoforms-using-ciri-vis)  
-6. [Author Information](#6-author-information)
+4. [Identifying Circular RNAs Using CIRI-full](#4-identifying-circular-rnas-using-ciri-full)  
+5. [Visualizing and Estimating Isoform Abundance Using CIRI-vis](#5-visualizing-and-estimating-isoform-abundance-using-ciri-vis)  
+6. [Reconstruction of Partial-Length CircRNAs](#6-reconstruction-of-partial-length-circrnas)
+7. [Author Information](#7-author-information)
 
 ## 1. Introduction
 
@@ -87,9 +88,21 @@ java -jar ${scriptdir}/CIRI-full.jar Merge -r ${fa} -a ${gtf} -c ${dir_detect}/c
 
 ```
 
-Output files in ```dir_detect```  for subsequent analysis:
+Output files in ```dir_detect```  for subsequent analysis, circRNA information at BSJ levels
 
-```ciri.report``` , circRNA information at BSJ levels
+```SRR6450118/full/ciri.report
+SRR6450119/full/ciri.report
+SRR6450120/full/ciri.report
+SRR6450121/full/ciri.report
+SRR6450122/full/ciri.report
+SRR6450123/full/ciri.report
+SRR6450124/full/ciri.report
+SRR6450125/full/ciri.report
+SRR6450126/full/ciri.report
+SRR6450127/full/ciri.report
+SRR6450128/full/ciri.report
+SRR6450129/full/ciri.report
+```
 
 
 ## 5. Visualize and estimate abundance of isoforms using [CIRI-vis](https://ciri-cookbook.readthedocs.io/en/latest/CIRI-vis.html)
@@ -103,11 +116,27 @@ mkdir -p ${dir_vis}
 java -jar CIRI-vis.jar -i ${dir_detect}/full_merge_circRNA_detail.anno -l ${dir_detect}/as_library_length.list -d ${dir_vis} -r ${fa} -min 1
 ```
 
-Output files in ```dir_vis```  for subsequent analysis:
+Output files in ```dir_vis```  for subsequent analysis, circRNA information at isoform levels
 
-```stout.list``` , circRNA information at isoform levels
+```SRR6450118/vis/stout.list
+SRR6450119/vis/stout.list
+SRR6450120/vis/stout.list
+SRR6450121/vis/stout.list
+SRR6450122/vis/stout.list
+SRR6450123/vis/stout.list
+SRR6450124/vis/stout.list
+SRR6450125/vis/stout.list
+SRR6450126/vis/stout.list
+SRR6450127/vis/stout.list
+SRR6450128/vis/stout.list
+SRR6450129/vis/stout.list
+```
 
-## 6. Author information
+
+## 6. Reconstruction of patial-length circRNAs
+
+
+## 7. Author information
 
 * **Author**: Shaoxun Yuan  
 * **Affiliation**: School of Artificial Intelligence and Information Technology, Nanjing University of Chinese Medicine, China  
