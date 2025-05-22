@@ -2,6 +2,5 @@
 
 export(MakeReferenceIsoform)
 export(loadLongIsoformFiles)
-import(dplyr)
 importFrom(data.table,fread)
-importFrom(plyr,count)
+importFrom(dplyr,count)
