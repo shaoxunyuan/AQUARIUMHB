@@ -4,18 +4,12 @@
 \alias{MakeReferenceIsoform}
 \title{Generate Reference Isoform Data}
 \usage{
-MakeReferenceIsoform(
-  datadir,
-  outputfile,
-  loadDataFunction = loadLongIsoformFiles
-)
+MakeReferenceIsoform(datadir, outputfile)
 }
 \arguments{
 \item{datadir}{Path to the directory containing input data files}
 
 \item{outputfile}{Path to the output file where results will be saved}
-
-\item{loadDataFunction}{Function to load external datasets (default: loadLongIsoformFiles)}
 }
 \value{
 A data frame containing the combined and processed reference isoforms
