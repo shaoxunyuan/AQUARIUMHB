@@ -7,7 +7,9 @@
 loadLongIsoformFiles(
   file1 = "FLcircAS.final.RData",
   file2 = "IsoCirc.final.RData",
-  package = "AQUARIUMHB"
+  package = "AQUARIUMHB",
+  envir = .GlobalEnv,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -16,9 +18,13 @@ loadLongIsoformFiles(
 \item{file2}{Name of the second .RData file (without path). Defaults to "IsoCirc.final.RData".}
 
 \item{package}{Name of the package. Defaults to "AQUARIUMHB".}
+
+\item{envir}{Environment to load the data into. Defaults to the global environment (.GlobalEnv).}
+
+\item{verbose}{If TRUE, prints detailed information about the loading process.}
 }
 \value{
-Invisible NULL. The function loads data into the environment rather than returning it.
+Invisible NULL. The function loads data into the specified environment rather than returning it.
 }
 \description{
 Loads two specified .RData files located in the package's inst/reference directory.
@@ -27,6 +33,6 @@ Loads two specified .RData files located in the package's inst/reference directo
 # Load default files from AQUARIUMHB package
 loadLongIsoformFiles()
 
-# Load custom files from another package
-loadLongIsoformFiles("custom1.RData", "custom2.RData", package = "MyPackage")
+# Load custom files with verbose output
+loadLongIsoformFiles("custom1.RData", "custom2.RData", verbose = TRUE)
 }
