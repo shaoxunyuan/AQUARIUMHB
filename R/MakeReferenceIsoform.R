@@ -8,8 +8,8 @@
 #' 
 #' @return A data frame containing the combined and processed reference isoforms
 #' 
-#' @import data.table
 #' @import dplyr
+#' @import data.table
 #' 
 #' @export
 #' 
