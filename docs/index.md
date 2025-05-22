@@ -6,7 +6,8 @@
 2. [Quick Start with Example Data](#2-quick-start-with-example-data)  
 3. [Data Preprocessing](#3-data-preprocessing)  
 4. [Identify circular RNAs using CIRI-full](#4-identify-circular-rnas-using-ciri-full)  
-5. [Author Information](#4-author-information)
+5. [Visualize and estimate abundance of isoforms using CIRI-vis](#5-visualize-and-estimate-abundance-of-isoforms-using-ciri-vis)  
+6. [Author Information](#4-author-information)
 
 ## 1. Introduction
 
@@ -31,13 +32,13 @@ For detailed sample information, please visit:  [GSE108887](https://www.ncbi.nlm
    prefetch SRR_Acc_List.txt
    ```
 
-3. 使用fastq-dump解压缩sra到fastq
+3. Batch convert with compression
    
    ```bash
    for sra in SRR{6450118..6450129}.sra; do
    
        fasterq-dump --split-3 "$sra" 
-       
+   
    done
    ```
 
@@ -56,7 +57,7 @@ bwa mem -T 10 ${fa} ${BioSample}_1.fastq ${BioSample}_2.fastq-o ${BioSample}/ful
 
 ```
 
-## 4. Identify circular RNAs using [CIRI-full](https://ciri-cookbook.readthedocs.io/en/latest/CIRI-full.html#)
+## 4. Identify circular RNAs using [CIRI-full](https://ciri-cookbook.readthedocs.io/en/latest/CIRI-full.html#) pipeline
 
 ```bash
 # Choose multi-threading based on the specific situation.
@@ -70,7 +71,10 @@ gtf=Homo_sapiens.GRCh38.94.chr.gtf
 
 # Use SRR6450118 as example
 BioSample=SRR6450118
-dir_detect=${BioSample}/full; mkdir -p ${dir_detect}
+
+dir_detect=${BioSample}/full
+
+mkdir -p ${dir_detect}
 
 # CIRI2: Circular RNA identification based on multiple seed matching
 perl CIRI2.pl --in ${dir_detect}/align.sam --out ${dir_detect}/ciri.report --ref_file ${fa} --anno ${gtf} --thread_num $THREAD_COUNT
@@ -89,7 +93,18 @@ java -jar ${scriptdir}/CIRI-full.jar Merge -r ${fa} -a ${gtf} -c ${dir_detect}/c
 
 ```
 
-## 5. Author information
+## 5. Visualize and estimate abundance of isoforms using [CIRI-vis](https://ciri-cookbook.readthedocs.io/en/latest/CIRI-vis.html)
+
+```bash
+
+dir_vis=${BioSample}/vis
+
+mkdir -p ${dir_vis}
+
+java -jar ${scriptdir}/CIRI-vis.jar -i ${dir_detect}/full_merge_circRNA_detail.anno -l ${dir_detect}/as_library_length.list -d ${dir_vis} -r ${fa} -min 1
+```
+
+## 6. Author information
 
 * **Author**: Shaoxun Yuan  
 * **Affiliation**: School of Artificial Intelligence and Information Technology, Nanjing University of Chinese Medicine, China  
