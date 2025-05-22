@@ -5,15 +5,15 @@
 \title{Load long isoform data files from package reference directory}
 \usage{
 loadLongIsoformFiles(
-  file1 = "Isocirc.final.RData",
-  file2 = "FlicricAS.final.RData",
+  file1 = "FLcircAS.final.RData",
+  file2 = "IsoCirc.final.RData",
   package = "AQUARIUMHB"
 )
 }
 \arguments{
-\item{file1}{Name of the first .RData file (without path). Defaults to "Isocirc.final.RData".}
+\item{file1}{Name of the first .RData file (without path). Defaults to "FLcircAS.final.RData".}
 
-\item{file2}{Name of the second .RData file (without path). Defaults to "FlicricAS.final.RData".}
+\item{file2}{Name of the second .RData file (without path). Defaults to "IsoCirc.final.RData".}
 
 \item{package}{Name of the package. Defaults to "AQUARIUMHB".}
 }
