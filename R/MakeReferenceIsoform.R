@@ -15,7 +15,7 @@
 #' 
 #' @examples
 #' \dontrun{
-#' MakeReferenceIsoform("path_to_data_paths.txt", "ReferenceIsoformFinal.txt")
+#' MakeReferenceIsoform("DataPathFile.txt", "ReferenceIsoformFinal.txt")
 #' }
 MakeReferenceIsoform <- function(datapathfile, outputfile) {
   message("Starting reference isoform generation...")

@@ -143,28 +143,29 @@ SRR6450129/vis/stout.list
 ```r
 library(AQUARIUMHB)
 
-MakeReferenceIsoform(datadir = "PRJNA429023",outputfile = "ReferenceIsoformFinal.txt")
+MakeReferenceIsoform(datapathfile = "DataPathFile.txt",outputfile = "ReferenceIsoformFinal.txt")
 
 ```
 
-```datadir```：```PRJNA429023```为包含输入文件的目录。```PRJNA429023```目录下每一个样本应为一个子目录，并包含```full```和```vis```子目录：
-PRJNA429023
-├── SRR6450118
-│   ├── full
-│   │   └── ciri.report
-│   └── vis
-│       └── stout.list
-├── SRR6450119
-│   ├── full
-│   │   └── ciri.report
-│   └── vis
-│       └── stout.list
-├── SRR6450120
-│   ├── full
-│   │   └── ciri.report
-│   └── vis
-│       └── stout.list
+```datapathfile```：The DataPathFile.txt contains path information of input files, with two columns: SampleID and SamplePath.
 
+| SampleID   | SamplePath                    |
+|------------|-------------------------------|
+| SRR6450118 | PRJNA429023/SRR6450118/       |
+| SRR6450119 | PRJNA429023/SRR6450119/       |
+| SRR6450120 | PRJNA429023/SRR6450120/       |
+| SRR6450121 | PRJNA429023/SRR6450121/       |
+| SRR6450122 | PRJNA429023/SRR6450122/       |
+| SRR6450123 | PRJNA429023/SRR6450123/       |
+| SRR6450124 | PRJNA429023/SRR6450124/       |
+| SRR6450125 | PRJNA429023/SRR6450125/       |
+| SRR6450126 | PRJNA429023/SRR6450126/       |
+| SRR6450127 | PRJNA429023/SRR6450127/       |
+| SRR6450128 | PRJNA429023/SRR6450128/       |
+| SRR6450129 | PRJNA429023/SRR6450129/       |
+
+
+```outputfile```：The filename of the output file.
 
 
 
@@ -174,3 +175,6 @@ PRJNA429023
 * **Author**: Shaoxun Yuan  
 * **Affiliation**: School of Artificial Intelligence and Information Technology, Nanjing University of Chinese Medicine, China  
 * **Contact**: [yuanshaoxun@njucm.edu.cn](mailto:yuanshaoxun@njucm.edu.cn)  
+
+
+```
