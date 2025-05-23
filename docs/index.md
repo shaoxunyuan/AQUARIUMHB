@@ -9,7 +9,8 @@
 4. [Identifying Circular RNAs Using CIRI-full](#4-identifying-circular-rnas-using-ciri-full)  
 5. [Visualizing and Estimating Isoform Abundance Using CIRI-vis](#5-visualizing-and-estimating-isoform-abundance-using-ciri-vis)  
 6. [Constructing a Full-length Reference Set](#6-constructing-a-full-length-reference-set)
-7. [Author Information](#7-author-information)
+7. [Construct gtf files for samples](#7-construct-gtf-files-for-samples)
+8. [Author Information](#8-author-information)
 
 ## 1. Introduction
 
@@ -148,7 +149,16 @@ MakeReferenceIsoform(datapathfile = "DataPathFile.txt",outputfile = "ReferenceIs
 | ...  | ...                     | ...       | ...       | ...                                                               | ...    | ...        | ...         | ...               | ...                                                      |
 | 2    | 2:231497095\|231503204  | 231497095 | 231503204 | chr2\|231497095,231503081\|231497252,231503204\|-                 | -      | 2          | 158,124     | 282               | Full,FLcircAS_HeLa,IsoCirc_SkeletalMuscle,IsoCirc_Testis |
 
-## 7. 
+## 7. Construct gtf files for samples
+Due to reasons such as short sequencing read lengths or insufficient sequencing depth, the circRNAs identified by CIRT - full may fall into the following three types:
+
+- Full: Those that contain the full - length information within the transcript.
+
+- Break: Those with partial internal transcript information missing.
+
+- Only: Those that contain only the information of the bsj locus.
+
+AQUARIUMHB uses the Full - length Reference Set constructed in the previous step to complete the Break and Only types of circRNAs, and then generates a gtf file for subsequent quantitative analysis.
 
 
 
