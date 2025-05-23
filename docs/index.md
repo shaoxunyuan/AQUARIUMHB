@@ -139,7 +139,7 @@ MakeReferenceIsoform(datapathfile = "DataPathFile.txt",outputfile = "ReferenceIs
 | SRR6450129 | PRJNA429023/SRR6450129/       |
 
 
-- outputfile：the filename of the output file, which contains all information of full-length transcripts from FLcircAS, IsoCirc, and blood samples. Example is as follows:
+- `outputfile`：outputfile contains all information of full-length transcripts from FLcircAS, IsoCirc, and blood samples. Example is as follows:
 
 | chr  | bsj                     | start     | end       | isoformID                                                         | strand | exon_count | exon_length | exon_total_length | ReferenceSource                                          |
 |------|-------------------------|-----------|-----------|-------------------------------------------------------------------|--------|------------|-------------|-------------------|----------------------------------------------------------|
