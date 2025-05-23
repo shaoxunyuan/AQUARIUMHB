@@ -12,7 +12,7 @@
 
 ## 1. Introduction
 
-AQUARIUMHB is an integrated computational pipeline designed for comprehensive analysis of circular RNAs (circRNAs) in human blood samples from RNA-seq data. 
+AQUARIUMHB is a comprehesive toolkit for identify, annotate, quantify, and analyze human blood circular RNAs from RNA-seq data. 
 
 ## 2. Quick Start with Example Data
 
