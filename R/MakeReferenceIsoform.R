@@ -22,7 +22,7 @@ MakeReferenceIsoform <- function(datapathfile, outputfile) {
   
   # Load external datasets
   message("Loading external datasets...")
-  loadLongIsoformFiles()
+  loadAnnotationFiles()
   FLcircAS <- as.data.frame(FLcircAS)
   IsoCirc <- as.data.frame(IsoCirc)
   
