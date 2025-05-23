@@ -126,10 +126,10 @@ R
 
 library(AQUARIUMHB)
 
-MakeReferenceIsoform(datapathfile = "DataPathFile.txt",outputfile = "ReferenceIsoformFinal.txt")
+MakeReferenceIsoform(datapathfile = "PRJNA429023/DataPathFile.txt",outputfile = "ReferenceIsoformFinal.txt")
 ```
 
-- datapathfile：The DataPathFile.txt contains path information of input files, with two columns: SampleID and SamplePath.
+- `datapathfile`：input file contains path information of input files, with two columns needed: `SampleID` and `SamplePath`.
 
 | SampleID   | SamplePath                    |
 |------------|-------------------------------|
@@ -139,7 +139,7 @@ MakeReferenceIsoform(datapathfile = "DataPathFile.txt",outputfile = "ReferenceIs
 | SRR6450129 | PRJNA429023/SRR6450129/       |
 
 
-- `outputfile`：outputfile contains all information of full-length transcripts from FLcircAS, IsoCirc, and blood samples. Example is as follows:
+- `outputfile`：output file contains all information of full-length transcripts from FLcircAS, IsoCirc, and blood samples. Example is as follows:
 
 | chr  | bsj                     | start     | end       | isoformID                                                         | strand | exon_count | exon_length | exon_total_length | ReferenceSource                                          |
 |------|-------------------------|-----------|-----------|-------------------------------------------------------------------|--------|------------|-------------|-------------------|----------------------------------------------------------|
@@ -160,6 +160,15 @@ Due to reasons such as short sequencing read lengths or insufficient sequencing 
 AQUARIUMHB uses the Full - length Reference Set constructed in the previous step to complete the Break and Only types of circRNAs, and then generates a gtf file for subsequent quantitative analysis.
 
 1. circRNA_full.gtf
+```R
+circRNA_full.gtf(datapathfile = "PRJNA429023/DataPathFile.txt",referencefile = "ReferenceIsoformFinal.txt")
+
+```
+Ouput gtf files in `quant` directory for each sample:
+| SRR6450118/quant/circRNA_full.gtf |
+| SRR6450119/quant/circRNA_full.gtf |
+| ......                            |
+| SRR6450129/quant/circRNA_full.gtf |
 
 2. circRNA_break.gtf
 
