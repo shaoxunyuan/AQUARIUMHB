@@ -27,13 +27,13 @@ For detailed sample information, please visit:  [GSE108887](https://www.ncbi.nlm
 
 1. Obtain the SRR accession list file (`SRR_Acc_List.txt`) from:   [NCBI SRA Study](https://www.ncbi.nlm.nih.gov/Traces/study/?acc=PRJNA429023&o=acc_s%3Aa)  
 
-2. Download all SRA files using:  
+2. Download all SRA files using ```prefetch```:  
    
    ```bash
    prefetch SRR_Acc_List.txt
    ```
 
-3. Batch convert with compression
+3. Batch convert with compression using ```fasterq-dump```
    
    ```bash
    for sra in SRR{6450118..6450129}.sra; do
@@ -46,15 +46,24 @@ For detailed sample information, please visit:  [GSE108887](https://www.ncbi.nlm
 ## 3. Align Paired-End Reads to Reference Genome
 
 ```bash
-# Path of reference genome and annotation, index files for reference genome must  made first using `bwa index`
+# Path of reference genome and annotation, index files for reference genome must made first using `bwa index`
 
 fa=Homo_sapiens.GRCh38.dna_sm.chromosomes.fa
 
 gtf=Homo_sapiens.GRCh38.94.chr.gtf
 
+# BioSample ID. Use SRR6450118 as an example:
+
 BioSample=SRR6450118
 
-bwa mem -T 10 ${fa} ${BioSample}_1.fastq ${BioSample}_2.fastq -o ${BioSample}/full/align.sam
+dir_detect=${BioSample}/full
+
+mkdir -p ${dir_detect}
+
+# Choose multi-threading based on the specific situation.
+THREAD_COUNT=8 
+
+bwa mem -T 10 ${fa} ${BioSample}_1.fastq ${BioSample}_2.fastq -o ${BioSample}/full/align.sam -t $THREAD_COUNT
 
 ```
 
@@ -66,10 +75,6 @@ THREAD_COUNT=8
 
 # Use SRR6450118 as an example
 BioSample=SRR6450118
-
-dir_detect=${BioSample}/full
-
-mkdir -p ${dir_detect}
 
 # CIRI2: Circular RNA identification based on multiple seed matching
 perl CIRI2.pl --in ${dir_detect}/align.sam --out ${dir_detect}/ciri.report --ref_file ${fa} --anno ${gtf} --thread_num $THREAD_COUNT
@@ -105,7 +110,6 @@ SRR6450128/full/ciri.report
 SRR6450129/full/ciri.report
 ```
 
-
 ## 5. Visualize and estimate abundance of isoforms using [CIRI-vis](https://ciri-cookbook.readthedocs.io/en/latest/CIRI-vis.html)
 
 ```bash
@@ -134,8 +138,35 @@ SRR6450128/vis/stout.list
 SRR6450129/vis/stout.list
 ```
 
+## 6. Make a Full-length Reference Set
 
-## 6. Reconstruction of partial-length circRNAs
+```r
+library(AQUARIUMHB)
+
+MakeReferenceIsoform(datadir = "PRJNA429023",outputfile = "ReferenceIsoformFinal.txt")
+
+```
+
+```datadir```：```PRJNA429023```为包含输入文件的目录。```PRJNA429023```目录下每一个样本应为一个子目录，并包含```full```和```vis```子目录：
+PRJNA429023
+├── SRR6450118
+│   ├── full
+│   │   └── ciri.report
+│   └── vis
+│       └── stout.list
+├── SRR6450119
+│   ├── full
+│   │   └── ciri.report
+│   └── vis
+│       └── stout.list
+├── SRR6450120
+│   ├── full
+│   │   └── ciri.report
+│   └── vis
+│       └── stout.list
+
+
+
 
 
 ## 7. Author information
