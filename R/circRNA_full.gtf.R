@@ -4,7 +4,7 @@
 #' to generate a GTF file containing exon information for circular RNAs 
 #' with 'Full' isoform state.
 #'
-#' @param datapathfile Path to the DataPathFile.txt containing sample information.
+#' @param inputpathfile Path to the DataPathFile.txt containing sample information.
 #' @param referencefile Path to the ReferenceIsoformFinal.txt containing reference isoform data.
 #'
 #' @return Generates a circRNA_full.gtf file in the quantification directory for each sample.
@@ -12,10 +12,10 @@
 #'
 #' @examples
 #' \dontrun{
-#' circRNA_full.gtf(datapathfile = "PRJNA429023/DataPathFile.txt", 
+#' circRNA_full.gtf(inputpathfile = "PRJNA429023/DataPathFile.txt", 
 #'                  referencefile = "ReferenceIsoformFinal.txt")
 #' }
-circRNA_full.gtf <- function(datapathfile = "PRJNA429023/DataPathFile.txt", 
+circRNA_full.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt", 
                             referencefile = "ReferenceIsoformFinal.txt") {
   # Load required packages
   if (!requireNamespace("data.table", quietly = TRUE)) {
@@ -31,21 +31,21 @@ circRNA_full.gtf <- function(datapathfile = "PRJNA429023/DataPathFile.txt",
   
   # Read data path file
   message("Reading data path file...")
-  datapathfile <- data.table::fread(datapathfile, data.table = FALSE)
+  datapath <- data.table::fread(inputpathfile, data.table = FALSE)
   
   # Process each sample
-  for (i in 1:nrow(datapathfile)) {
-    SampleID <- datapathfile$SampleID[i]
+  for (i in 1:nrow(datapath)) {
+    SampleID <- datapath$SampleID[i]
     message(paste0("Processing sample: ", SampleID))
     
-    dirquant <- paste0(datapathfile$SamplePath[i], "quant/")
+    dirquant <- paste0(datapath$SamplePath[i], "quant/")
     if (!dir.exists(dirquant)) {
       message(paste0("Creating directory: ", dirquant))
       dir.create(dirquant, recursive = TRUE)
     }
     
     # Build path to stout.list file
-    stout.list.path <- file.path(datapathfile$SamplePath[i], "vis/stout.list")
+    stout.list.path <- file.path(datapath$SamplePath[i], "vis/stout.list")
     
     # Check if stout.list file exists
     if (!file.exists(stout.list.path)) {
