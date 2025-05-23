@@ -7,7 +7,7 @@
 3. [Data Preprocessing](#3-data-preprocessing)  
 4. [Identifying Circular RNAs Using CIRI-full](#4-identifying-circular-rnas-using-ciri-full)  
 5. [Visualizing and Estimating Isoform Abundance Using CIRI-vis](#5-visualizing-and-estimating-isoform-abundance-using-ciri-vis)  
-6. [Reconstruction of Partial-Length CircRNAs](#6-reconstruction-of-partial-length-circrnas)
+6. [Make a Full-length Reference Set](#6-make-a-full-length-reference-set)
 7. [Author Information](#7-author-information)
 
 ## 1. Introduction

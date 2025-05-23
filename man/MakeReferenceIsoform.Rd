@@ -20,6 +20,6 @@ combines them, and generates a comprehensive reference isoform dataset.
 }
 \examples{
 \dontrun{
-MakeReferenceIsoform("path_to_data_paths.txt", "ReferenceIsoformFinal.txt")
+MakeReferenceIsoform("DataPathFile.txt", "ReferenceIsoformFinal.txt")
 }
 }
