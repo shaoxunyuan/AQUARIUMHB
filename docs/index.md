@@ -141,10 +141,12 @@ SRR6450129/vis/stout.list
 ## 6. Constructing a Full-length Reference Set
 
 ```r
+
+R
+
 library(AQUARIUMHB)
 
 MakeReferenceIsoform(datapathfile = "DataPathFile.txt",outputfile = "ReferenceIsoformFinal.txt")
-
 ```
 
 datapathfile：The DataPathFile.txt contains path information of input files, with two columns: SampleID and SamplePath.
@@ -153,15 +155,7 @@ datapathfile：The DataPathFile.txt contains path information of input files, wi
 |------------|-------------------------------|
 | SRR6450118 | PRJNA429023/SRR6450118/       |
 | SRR6450119 | PRJNA429023/SRR6450119/       |
-| SRR6450120 | PRJNA429023/SRR6450120/       |
-| SRR6450121 | PRJNA429023/SRR6450121/       |
-| SRR6450122 | PRJNA429023/SRR6450122/       |
-| SRR6450123 | PRJNA429023/SRR6450123/       |
-| SRR6450124 | PRJNA429023/SRR6450124/       |
-| SRR6450125 | PRJNA429023/SRR6450125/       |
-| SRR6450126 | PRJNA429023/SRR6450126/       |
-| SRR6450127 | PRJNA429023/SRR6450127/       |
-| SRR6450128 | PRJNA429023/SRR6450128/       |
+| ......     | ......                        |
 | SRR6450129 | PRJNA429023/SRR6450129/       |
 
 
