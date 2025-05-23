@@ -171,6 +171,15 @@ Ouput gtf files in `quant` directory for each sample:
 | SRR6450129/quant/circRNA_full.gtf |
 
 2. circRNA_break.gtf
+```R
+circRNA_full.gtf(datapathfile = "PRJNA429023/DataPathFile.txt",referencefile = "ReferenceIsoformFinal.txt")
+
+```
+Ouput gtf files in `quant` directory for each sample:
+| SRR6450118/quant/circRNA_break.gtf |
+| SRR6450119/quant/circRNA_break.gtf |
+| ......                            |
+| SRR6450129/quant/circRNA_break.gtf |
 
 3. circRNA_only.gtf  
 

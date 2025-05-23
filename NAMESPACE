@@ -2,7 +2,7 @@
 
 export(MakeReferenceIsoform)
 export(circRNA_full.gtf)
-export(loadLongIsoformFiles)
+export(loadAnnotationFiles)
 import(dplyr)
 importFrom(data.table,fread)
 importFrom(data.table,setnames)
