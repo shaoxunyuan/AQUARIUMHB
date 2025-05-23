@@ -4,10 +4,10 @@
 
 1. [Introduction](#1-introduction)  
 2. [Quick Start with Example Data](#2-quick-start-with-example-data)  
-3. [Data Preprocessing](#3-data-preprocessing)  
+3. [Alignment to Reference Genome](#3-alignment-to-reference-genome)  
 4. [Identifying Circular RNAs Using CIRI-full](#4-identifying-circular-rnas-using-ciri-full)  
 5. [Visualizing and Estimating Isoform Abundance Using CIRI-vis](#5-visualizing-and-estimating-isoform-abundance-using-ciri-vis)  
-6. [Make a Full-length Reference Set](#6-make-a-full-length-reference-set)
+6. [Constructing a Full-length Reference Set](#6-constructing-a-full-length-reference-set)
 7. [Author Information](#7-author-information)
 
 ## 1. Introduction
@@ -138,7 +138,7 @@ SRR6450128/vis/stout.list
 SRR6450129/vis/stout.list
 ```
 
-## 6. Make a Full-length Reference Set
+## 6. Constructing a Full-length Reference Set
 
 ```r
 library(AQUARIUMHB)
@@ -147,7 +147,7 @@ MakeReferenceIsoform(datapathfile = "DataPathFile.txt",outputfile = "ReferenceIs
 
 ```
 
-```datapathfile```：The DataPathFile.txt contains path information of input files, with two columns: SampleID and SamplePath.
+datapathfile：The DataPathFile.txt contains path information of input files, with two columns: SampleID and SamplePath.
 
 | SampleID   | SamplePath                    |
 |------------|-------------------------------|
@@ -165,7 +165,7 @@ MakeReferenceIsoform(datapathfile = "DataPathFile.txt",outputfile = "ReferenceIs
 | SRR6450129 | PRJNA429023/SRR6450129/       |
 
 
-```outputfile```：The filename of the output file.
+outputfile：The filename of the output file.
 
 
 
