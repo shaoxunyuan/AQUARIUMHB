@@ -1,150 +1,134 @@
-#' Generate Full-Length circRNA GTF Files
-#' 
-#' This function processes circRNA isoform data to generate GTF files for full-length circRNAs, 
-#' incorporating reference sources and formatting data according to GTF specifications.
-#' 
-#' @title Generate Full-Length circRNA GTF Files
-#' @param datapathfile Path to the text file containing sample paths (2 columns: SampleID, SamplePath)
-#' @param referencefile Path to the reference isoform dataset file (output from MakeReferenceIsoform)
-#' @return Invisible NULL (writes GTF files to specified directories)
-#' @importFrom data.table fread fwrite
-#' @importFrom dplyr filter select mutate
-#' @importFrom plyr mapvalues
+#' Generate circRNA Full GTF File
+#'
+#' This function processes visualization data from circRNA detection tools 
+#' to generate a GTF file containing exon information for circular RNAs 
+#' with 'Full' isoform state.
+#'
+#' @param datapathfile Path to the DataPathFile.txt containing sample information.
+#' @param referencefile Path to the ReferenceIsoformFinal.txt containing reference isoform data.
+#'
+#' @return Generates a circRNA_full.gtf file in the quantification directory for each sample.
 #' @export
+#'
 #' @examples
 #' \dontrun{
-#' circRNA_full.gtf(
-#'   datapathfile = "PRJNA429023/DataPathFile.txt",
-#'   referencefile = "ReferenceIsoformFinal.txt"
-#' )
+#' circRNA_full.gtf(datapathfile = "PRJNA429023/DataPathFile.txt", 
+#'                  referencefile = "ReferenceIsoformFinal.txt")
 #' }
-circRNA_full.gtf <- function(datapathfile, referencefile) {
-  # Load reference isoform data
-  message("Loading reference isoform dataset...")
-  ReferenceSet <- fread(referencefile, data.table = FALSE) %>%
-    dplyr::select(isoformID, ReferenceSource)
-  
-  # Load sample path data
-  message("Reading sample path configuration...")
-  SampleData <- fread(datapathfile, data.table = FALSE) %>%
-    dplyr::rename(SampleID = SampleID, SamplePath = SamplePath)
-  
-  # Validate input files
-  if (!file.exists(datapathfile)) stop(sprintf("File not found: %s", datapathfile))
-  if (!file.exists(referencefile)) stop(sprintf("File not found: %s", referencefile))
-  
-  # Process each sample
-  for (i in seq_len(nrow(SampleData))) {
-    SampleID <- SampleData$SampleID[i]
-    SamplePath <- SampleData$SamplePath[i]
-    
-    message(sprintf("\nProcessing sample %d/%d: %s", i, nrow(SampleData), SampleID))
-    
-    # Create quantification directory
-    dirquant <- file.path(SamplePath, "quant")
-    if (!dir.exists(dirquant)) {
-      message(sprintf("Creating directory: %s", dirquant))
-      dir.create(dirquant, recursive = TRUE, showWarnings = FALSE)
-    }
-    
-    # Path to stout.list
-    stout_list_path <- file.path(SamplePath, "vis", "stout.list")
-    if (!file.exists(stout_list_path)) {
-      message(sprintf("Warning: stout.list not found for %s", SampleID))
-      next
-    }
-    
-    # Read and process stout.list
-    message("Reading and parsing stout.list...")
-    stout.list <- fread(
-      stout_list_path, 
-      data.table = FALSE, 
-      sep = "\t", 
-      header = FALSE,
-      col.names = c(
-        "Image_ID", "bsj", "chr", "start", "end", "total_exp",
-        "isoform_number", "isoform_exp", "isoform_length", 
-        "isoform_state", "strand", "gene_id", "isoform_cirexon"
-      )
-    ) %>%
-      filter(isoform_state == "Full") %>%
-      select(chr, start, end, strand, bsj, isoform_cirexon)
-    
-    # Skip if no full isoforms found
-    if (nrow(stout.list) == 0) {
-      message("No full-length isoforms found. Skipping GTF generation.")
-      next
-    }
-    
-    # Generate GTF entries
-    message("Generating GTF entries...")
-    gtf_entries <- list()
-    
-    for (row_idx in seq_len(nrow(stout.list))) {
-      row_data <- stout.list[row_idx, ]
-      
-      # Parse exon coordinates
-      exons <- strsplit(row_data$isoform_cirexon, ",")[[1]] %>%
-        lapply(function(x) strsplit(x, "-")[[1]]) %>%
-        do.call(rbind, .) %>%
-        as.data.frame() %>%
-        setNames(c("exon_start", "exon_end")) %>%
-        mutate(
-          exon_start = as.numeric(exon_start),
-          exon_end = as.numeric(exon_end)
-        )
-      
-      # Create isoform ID
-      exon_starts <- paste(exons$exon_start, collapse = ",")
-      exon_ends <- paste(exons$exon_end, collapse = ",")
-      isoform_id <- paste0("chr", row_data$chr, "|", exon_starts, "|", exon_ends, "|", row_data$strand)
-      
-      # Map reference source
-      reference_source <- plyr::mapvalues(isoform_id,ReferenceSet$isoformID,ReferenceSet$ReferenceSource,warn.missing = FALSE)
-      
-      # Build GTF attributes
-      attributes <- paste0(
-        'bsj "', row_data$bsj, '"; ',
-        'transcript_id "', isoform_id, '"; ',
-        'isoform_state "Full"; ',
-        'ReferenceSource "', reference_source, '"'
-      )
-      
-      # Create GTF row
-      gtf_row <- data.frame(
-        chr = row_data$chr,
-        source = "ciri",
-        type = "exon",
-        start = exons$exon_start,
-        end = exons$exon_end,
-        score = ".",
-        strand = row_data$strand,
-        phase = ".",
-        attributes = attributes,
-        stringsAsFactors = FALSE
-      )
-      
-      gtf_entries[[row_idx]] <- gtf_row
-    }
-    
-    # Combine GTF entries
-    gtf_output <- do.call(rbind, gtf_entries)
-    
-    # Write to GTF file
-    output_path <- file.path(dirquant, "circRNA_full.gtf")
-    message(sprintf("Writing GTF file to: %s", output_path))
-    fwrite(
-      gtf_output,
-      file = output_path,
-      sep = "\t",
-      quote = FALSE,
-      col.names = FALSE,
-      row.names = FALSE
-    )
-    
-    message("Processing complete for current sample.")
+circrna_full.gtf <- function(datapathfile = "PRJNA429023/DataPathFile.txt", 
+                            referencefile = "ReferenceIsoformFinal.txt") {
+  # Load required packages
+  if (!requireNamespace("data.table", quietly = TRUE)) {
+    stop("Package 'data.table' is required but not installed.")
+  }
+  if (!requireNamespace("plyr", quietly = TRUE)) {
+    stop("Package 'plyr' is required but not installed.")
   }
   
-  message("\nAll samples processed successfully.")
-  invisible(NULL)
+  # Read reference file
+  message("Reading reference isoform data...")
+  ReferenceSet <- data.table::fread(referencefile, data.table = FALSE)
+  
+  # Read data path file
+  message("Reading data path file...")
+  datapathfile <- data.table::fread(datapathfile, data.table = FALSE)
+  
+  # Process each sample
+  for (i in 1:nrow(datapathfile)) {
+    SampleID <- datapathfile$SampleID[i]
+    message(paste0("Processing sample: ", SampleID))
+    
+    dirquant <- paste0(datapathfile$SamplePath[i], "quant/")
+    if (!dir.exists(dirquant)) {
+      message(paste0("Creating directory: ", dirquant))
+      dir.create(dirquant, recursive = TRUE)
+    }
+    
+    # Build path to stout.list file
+    stout.list.path <- file.path(datapathfile$SamplePath[i], "vis/stout.list")
+    
+    # Check if stout.list file exists
+    if (!file.exists(stout.list.path)) {
+      warning(paste0("stout.list file not found for sample ", SampleID, ". Skipping this sample."))
+      next
+    }
+    
+    message(paste0("Reading stout.list for sample ", SampleID))
+    stout.list <- data.table::fread(stout.list.path, data.table = FALSE, sep = "\t", header = FALSE)
+    
+    # Rename columns with unique names
+    colnames(stout.list) <- c("Image_ID", "bsj", "chr", "start", "end", "total_exp",
+                             "isoform_number", "isoform_exp", "isoform_length", 
+                             "isoform_state", "strand", "gene_id", "isoform_cirexon")
+    
+    # Filter for 'Full' isoforms
+    message("Filtering for 'Full' isoforms...")
+    type_full <- stout.list[stout.list$isoform_state == "Full", 
+                           c('chr', 'start', 'end', 'strand', 'bsj', 'isoform_state', 'isoform_cirexon')]
+    
+    # Check if any 'Full' isoforms found
+    if (nrow(type_full) == 0) {
+      warning(paste0("No 'Full' isoforms found for sample ", SampleID))
+      next
+    }
+    
+    # Process each 'Full' isoform to generate GTF entries
+    message(paste0("Processing ", nrow(type_full), " 'Full' isoforms..."))
+    gtf_Full.list <- list() 
+    
+    for(index in 1:nrow(type_full)){
+      onerow <- type_full[index,]
+      chr <- onerow$chr
+      start <- onerow$start
+      end <- onerow$end
+      strand <- onerow$strand
+      isoform_cirexon <- onerow$isoform_cirexon
+      
+      exon <- strsplit(strsplit(isoform_cirexon, ",")[[1]], "-")
+      exon <- data.frame(t(data.frame(exon)))
+      rownames(exon) <- NULL
+      colnames(exon) <- c("start","end")
+      exon$start <- as.numeric(exon$start)
+      exon$end <- as.numeric(exon$end) 
+      
+      exonstart <- paste(exon$start, collapse = ",")
+      exonend <- paste(exon$end, collapse = ",")
+      isoformID <- paste0("chr", chr, "|", exonstart, "|", exonend, "|", strand)
+      bsj <- paste0(chr, ":", start, "|", end)
+      
+      results <- data.frame(chr = chr, ciri = "ciri", type = "exon", start = exon$start, end = exon$end,
+                           attr1 = ".", strand = strand, attr2 = ".", bsj = bsj, isoformID = isoformID)
+      gtf_Full.list[[index]] <- results           
+    }
+    
+    # Combine all entries
+    type_full.gtf <- do.call(rbind, gtf_Full.list)
+    
+    # Map reference sources
+    message("Mapping reference sources...")
+    type_full.gtf$ReferenceSource <- plyr::mapvalues(type_full.gtf$isoformID, 
+                                                     ReferenceSet$isoformID, 
+                                                     ReferenceSet$ReferenceSource, 
+                                                     warn_missing = FALSE)
+    
+    # Create attribute column
+    type_full.gtf$attr <- paste0('bsj "', type_full.gtf$bsj, '"; ',  
+                                'transcript_id "', type_full.gtf$isoformID, '"; ',  
+                                'isoform_state "', "Full", '"; ',  
+                                'ReferenceSource "', type_full.gtf$ReferenceSource, '"; ')
+    
+    # Reorder columns to GTF format
+    type_full.gtf <- type_full.gtf[,c("chr","ciri","type","start","end","attr1","strand","attr2","attr")]
+    
+    # Write output to file
+    output_file <- paste0(dirquant, "/circRNA_full.gtf")
+    message(paste0("Writing output to: ", output_file))
+    write.table(type_full.gtf, file = output_file, sep = "\t", quote = FALSE, 
+                col.names = FALSE, append = FALSE, row.names = FALSE)
+    
+    message(paste0("Completed processing for sample ", SampleID))
+  }
+  
+  message("All samples processed successfully!")
+  return(invisible(NULL))
 }
