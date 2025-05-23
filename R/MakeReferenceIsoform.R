@@ -3,7 +3,7 @@
 #' This function processes circRNA isoform data from multiple sources, 
 #' combines them, and generates a comprehensive reference isoform dataset.
 #' 
-#' @param datadir Path to the directory containing input data files
+#' @param datapathfile Path to the text file containing sample paths
 #' @param outputfile Path to the output file where results will be saved
 #' 
 #' @return A data frame containing the combined and processed reference isoforms
@@ -15,9 +15,9 @@
 #' 
 #' @examples
 #' \dontrun{
-#' MakeReferenceIsoform("PRJNA429023", "ReferenceIsoformFinal.txt")
+#' MakeReferenceIsoform("path_to_data_paths.txt", "ReferenceIsoformFinal.txt")
 #' }
-MakeReferenceIsoform <- function(datadir, outputfile) {
+MakeReferenceIsoform <- function(datapathfile, outputfile) {
   message("Starting reference isoform generation...")
   
   # Load external datasets
@@ -93,18 +93,19 @@ MakeReferenceIsoform <- function(datadir, outputfile) {
   
   # Read and process all stout.list files
   message("Reading and processing input files...")
-  stout.list.path <- grep("stout.list", list.files(datadir, recursive = TRUE, full.names = TRUE), value = TRUE)
   
-  if (length(stout.list.path) == 0) {
-    stop("No stout.list files found in the specified directory!")
-  }
+  # 修正：读取包含路径信息的文本文件
+  DataFilePath <- data.frame(SamplePath = readLines(datapathfile))
   
   stout.list.all.list <- list()
-  for (i in seq_along(stout.list.path)) {
-    message(sprintf("Processing file %d of %d: %s", i, length(stout.list.path), stout.list.path[i]))
+  for (i in seq_along(DataFilePath$SamplePath)) {
+    message(sprintf("Processing file %d of %d: %s", i, nrow(DataFilePath), DataFilePath$SamplePath[i]))
+    
+    # 构建完整的stout.list文件路径
+    stout.list.path <- file.path(DataFilePath$SamplePath[i], "vis/stout.list")
     
     # 读取文件，header=TRUE表示使用第一行作为列名
-    stout.list <- fread(stout.list.path[i], data.table = FALSE, header = TRUE)
+    stout.list <- fread(stout.list.path, data.table = FALSE, header = TRUE)
     
     # 定义完整的列名向量
     expected_cols <- c("Image_ID", "bsj", "chr", "start", "end", "total_exp",
@@ -117,12 +118,12 @@ MakeReferenceIsoform <- function(datadir, outputfile) {
     } else if (ncol(stout.list) == length(expected_cols) - 1) {
       # 如果缺少一列，添加默认列名
       warning(sprintf("File %s has %d columns but expected %d. Adding default column name.", 
-                     stout.list.path[i], ncol(stout.list), length(expected_cols)))
+                     stout.list.path, ncol(stout.list), length(expected_cols)))
       setnames(stout.list, c("V1", expected_cols[-1]))  # 添加"V1"作为第一列名
     } else {
       # 其他情况，抛出错误
       stop(sprintf("Unexpected number of columns (%d) in file %s", 
-                  ncol(stout.list), stout.list.path[i]))
+                  ncol(stout.list), stout.list.path))
     }
     
     # 选择需要的列
@@ -192,5 +193,4 @@ MakeReferenceIsoform <- function(datadir, outputfile) {
               sep = "\t", quote = FALSE, col.names = TRUE, append = FALSE, row.names = FALSE)
   
   message("Reference isoform generation completed successfully!")
-  #return(ReferenceIsoform_Long_And_Full)
-}    
+}
