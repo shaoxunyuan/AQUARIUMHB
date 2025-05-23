@@ -5,12 +5,12 @@
 \title{Generate circRNA Full GTF File}
 \usage{
 circRNA_full.gtf(
-  datapathfile = "PRJNA429023/DataPathFile.txt",
+  inputpathfile = "PRJNA429023/DataPathFile.txt",
   referencefile = "ReferenceIsoformFinal.txt"
 )
 }
 \arguments{
-\item{datapathfile}{Path to the DataPathFile.txt containing sample information.}
+\item{inputpathfile}{Path to the DataPathFile.txt containing sample information.}
 
 \item{referencefile}{Path to the ReferenceIsoformFinal.txt containing reference isoform data.}
 }
@@ -24,7 +24,7 @@ with 'Full' isoform state.
 }
 \examples{
 \dontrun{
-circRNA_full.gtf(datapathfile = "PRJNA429023/DataPathFile.txt", 
+circRNA_full.gtf(inputpathfile = "PRJNA429023/DataPathFile.txt", 
                  referencefile = "ReferenceIsoformFinal.txt")
 }
 }

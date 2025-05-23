@@ -121,7 +121,7 @@ circRNA_full.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt",
     type_full.gtf <- type_full.gtf[,c("chr","ciri","type","start","end","attr1","strand","attr2","attr")]
     
     # Write output to file
-    output_file <- paste0(dirquant, "/circRNA_full.gtf")
+    output_file <- paste0(dirquant, "circRNA_full.gtf")
     message(paste0("Writing output to: ", output_file))
     write.table(type_full.gtf, file = output_file, sep = "\t", quote = FALSE, 
                 col.names = FALSE, append = FALSE, row.names = FALSE)
