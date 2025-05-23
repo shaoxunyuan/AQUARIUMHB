@@ -4,10 +4,10 @@
 \alias{MakeReferenceIsoform}
 \title{Generate Reference Isoform Data}
 \usage{
-MakeReferenceIsoform(datadir, outputfile)
+MakeReferenceIsoform(datapathfile, outputfile)
 }
 \arguments{
-\item{datadir}{Path to the directory containing input data files}
+\item{datapathfile}{Path to the text file containing sample paths}
 
 \item{outputfile}{Path to the output file where results will be saved}
 }
@@ -20,6 +20,6 @@ combines them, and generates a comprehensive reference isoform dataset.
 }
 \examples{
 \dontrun{
-MakeReferenceIsoform("PRJNA429023", "ReferenceIsoformFinal.txt")
+MakeReferenceIsoform("path_to_data_paths.txt", "ReferenceIsoformFinal.txt")
 }
 }

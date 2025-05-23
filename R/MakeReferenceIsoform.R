@@ -95,7 +95,7 @@ MakeReferenceIsoform <- function(datapathfile, outputfile) {
   message("Reading and processing input files...")
   
   # 修正：读取包含路径信息的文本文件
-  DataFilePath <- data.frame(SamplePath = readLines(datapathfile))
+  DataFilePath <- data.table::fread(datapathfile,data.table = F)
   
   stout.list.all.list <- list()
   for (i in seq_along(DataFilePath$SamplePath)) {
