@@ -129,7 +129,7 @@ library(AQUARIUMHB)
 MakeReferenceIsoform(datapathfile = "DataPathFile.txt",outputfile = "ReferenceIsoformFinal.txt")
 ```
 
-datapathfile：The DataPathFile.txt contains path information of input files, with two columns: SampleID and SamplePath.
+- datapathfile：The DataPathFile.txt contains path information of input files, with two columns: SampleID and SamplePath.
 
 | SampleID   | SamplePath                    |
 |------------|-------------------------------|
@@ -139,7 +139,7 @@ datapathfile：The DataPathFile.txt contains path information of input files, wi
 | SRR6450129 | PRJNA429023/SRR6450129/       |
 
 
-outputfile：the filename of the output file, which contains all information of full-length transcripts from FLcircAS, IsoCirc, and blood samples. Example is as follows:
+- outputfile：the filename of the output file, which contains all information of full-length transcripts from FLcircAS, IsoCirc, and blood samples. Example is as follows:
 
 | chr  | bsj                     | start     | end       | isoformID                                                         | strand | exon_count | exon_length | exon_total_length | ReferenceSource                                          |
 |------|-------------------------|-----------|-----------|-------------------------------------------------------------------|--------|------------|-------------|-------------------|----------------------------------------------------------|
