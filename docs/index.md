@@ -32,7 +32,7 @@ For detailed sample information, please visit:  [GSE108887](https://www.ncbi.nlm
 2. Download all SRA files using ```prefetch```:  
    
 ```bash
-prefetch SRR_Acc_List.txt
+prefetch ./SRR_Acc_List.txt
 ```
 
 3. Batch convert with compression using ```fasterq-dump```
@@ -50,9 +50,9 @@ done
 ```bash
 # Path of reference genome and annotation, index files for reference genome must made first using `bwa index`
 
-fa=Homo_sapiens.GRCh38.dna_sm.chromosomes.fa
+fa=./Homo_sapiens.GRCh38.dna_sm.chromosomes.fa
 
-gtf=Homo_sapiens.GRCh38.94.chr.gtf
+gtf=./Homo_sapiens.GRCh38.94.chr.gtf
 
 # BioSample ID. Use SRR6450118 as an example:
 
@@ -89,9 +89,9 @@ java -jar $CIRI-full.jar RO1 -1 ${BioSample}_1.fastq.gz -2 ${BioSample}_2.fastq.
 
 bwa mem -T 19 -t $THREAD_COUNT ${fa} ${dir_detect}/full_ro1.fq -o ${dir_detect}/full_ro1.sam -t $THREAD_COUNT
 
-java -jar ${scriptdir}/CIRI-full.jar RO2 -r ${fa} -s ${dir_detect}/full_ro1.sam -l 150 -o ${dir_detect}/full
+java -jar CIRI-full.jar RO2 -r ${fa} -s ${dir_detect}/full_ro1.sam -l 150 -o ${dir_detect}/full
 
-java -jar ${scriptdir}/CIRI-full.jar Merge -r ${fa} -a ${gtf} -c ${dir_detect}/ciri.report -as ${dir_detect}/as_jav.list -ro ${dir_detect}/full_ro2_info.list -o ${dir_detect}/full
+java -jar CIRI-full.jar Merge -r ${fa} -a ${gtf} -c ${dir_detect}/ciri.report -as ${dir_detect}/as_jav.list -ro ${dir_detect}/full_ro2_info.list -o ${dir_detect}/full
 
 ```
 
