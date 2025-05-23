@@ -104,8 +104,7 @@ circRNA_full.gtf <- function(datapathfile, referencefile) {
         isoform_id,
         ReferenceSet$isoformID,
         ReferenceSet$ReferenceSource,
-        warn.missing = FALSE,
-        default = "Unknown"
+        warn.missing = FALSE
       )
       
       # Build GTF attributes
