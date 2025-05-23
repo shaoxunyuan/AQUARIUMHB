@@ -95,20 +95,10 @@ java -jar ${scriptdir}/CIRI-full.jar Merge -r ${fa} -a ${gtf} -c ${dir_detect}/c
 
 Output files in ```dir_detect```  for subsequent analysis, circRNA information at BSJ levels
 
-```
-SRR6450118/full/ciri.report
-SRR6450119/full/ciri.report
-SRR6450120/full/ciri.report
-SRR6450121/full/ciri.report
-SRR6450122/full/ciri.report
-SRR6450123/full/ciri.report
-SRR6450124/full/ciri.report
-SRR6450125/full/ciri.report
-SRR6450126/full/ciri.report
-SRR6450127/full/ciri.report
-SRR6450128/full/ciri.report
-SRR6450129/full/ciri.report
-```
+| SRR6450118/full/ciri.report |
+| SRR6450119/full/ciri.report |
+| ......                      |
+| SRR6450129/full/ciri.report |
 
 ## 5. Visualize and estimate abundance of isoforms using [CIRI-vis](https://ciri-cookbook.readthedocs.io/en/latest/CIRI-vis.html)
 
@@ -123,25 +113,14 @@ java -jar CIRI-vis.jar -i ${dir_detect}/full_merge_circRNA_detail.anno -l ${dir_
 
 Output files in ```dir_vis```  for subsequent analysis, circRNA information at isoform levels
 
-```
-SRR6450118/vis/stout.list
-SRR6450119/vis/stout.list
-SRR6450120/vis/stout.list
-SRR6450121/vis/stout.list
-SRR6450122/vis/stout.list
-SRR6450123/vis/stout.list
-SRR6450124/vis/stout.list
-SRR6450125/vis/stout.list
-SRR6450126/vis/stout.list
-SRR6450127/vis/stout.list
-SRR6450128/vis/stout.list
-SRR6450129/vis/stout.list
-```
+| SRR6450118/vis/stout.list |
+| SRR6450119/vis/stout.list |
+| ......                    |
+| SRR6450129/vis/stout.list |
 
 ## 6. Constructing a Full-length Reference Set
 
 ```r
-
 R
 
 library(AQUARIUMHB)
