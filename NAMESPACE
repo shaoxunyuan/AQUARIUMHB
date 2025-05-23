@@ -3,6 +3,7 @@
 export(MakeReferenceIsoform)
 export(circRNA_break.gtf)
 export(circRNA_full.gtf)
+export(circRNA_only.gtf)
 export(loadAnnotationFiles)
 import(dplyr)
 importFrom(data.table,fread)
