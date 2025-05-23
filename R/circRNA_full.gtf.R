@@ -15,7 +15,7 @@
 #' circRNA_full.gtf(datapathfile = "PRJNA429023/DataPathFile.txt", 
 #'                  referencefile = "ReferenceIsoformFinal.txt")
 #' }
-circrna_full.gtf <- function(datapathfile = "PRJNA429023/DataPathFile.txt", 
+circRNA_full.gtf <- function(datapathfile = "PRJNA429023/DataPathFile.txt", 
                             referencefile = "ReferenceIsoformFinal.txt") {
   # Load required packages
   if (!requireNamespace("data.table", quietly = TRUE)) {
