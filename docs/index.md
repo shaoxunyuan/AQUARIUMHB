@@ -140,14 +140,13 @@ datapathfile：The DataPathFile.txt contains path information of input files, wi
 
 outputfile：The filename of the output file.
 
+## 7. 
 
 
 
-## 7. Author information
+## 8. Author information
 
 * **Author**: Shaoxun Yuan  
 * **Affiliation**: School of Artificial Intelligence and Information Technology, Nanjing University of Chinese Medicine, China  
 * **Contact**: [yuanshaoxun@njucm.edu.cn](mailto:yuanshaoxun@njucm.edu.cn)  
 
-
-```

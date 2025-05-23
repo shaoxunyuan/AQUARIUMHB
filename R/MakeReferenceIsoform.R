@@ -43,48 +43,57 @@ MakeReferenceIsoform <- function(datapathfile, outputfile) {
     }
     
     # Apply coordinate conversion and create isoform IDs
-    stout_list_full$isoformID <- paste0("chr", stout_list_full$chr, "|",
-                                        sapply(stout_list_full$isoform_cirexon, convert_coordinates), "|",
-                                        stout_list_full$strand)
+    stout_list_full$isoformID <- paste0(
+      "chr", 
+      stout_list_full$chr, 
+      "|", 
+      sapply(stout_list_full$isoform_cirexon, convert_coordinates), 
+      "|", 
+      stout_list_full$strand
+    )
     return(stout_list_full)
   }
   
   # Function to parse transcript string and extract exon information
   parse_transcript <- function(transcript_str) {
-    if (is.na(transcript_str) || transcript_str == "") {
-      return(list(exon_count = NA, exon_length = NA, exon_total_length = NA))
-    }
-    
+    # Split string
     parts <- unlist(strsplit(transcript_str, "\\|"))
     
-    # Split combined starts|ends format
-    coords <- unlist(strsplit(parts[2], "\\|"))
-    starts <- as.numeric(unlist(strsplit(coords[1], ",")))
-    ends <- as.numeric(unlist(strsplit(coords[2], ",")))
+    # Get exon start and end positions (assume parts[2]=starts, parts[3]=ends)
+    starts <- as.numeric(unlist(strsplit(parts[2], ",")))
+    ends <- as.numeric(unlist(strsplit(parts[3], ",")))
     
+    # Calculate exon count
     exon_count <- length(starts)
-    exon_length <- ends - starts + 1
-    exon_total_length <- sum(exon_length)
     
-    return(list(exon_count = exon_count, 
-                exon_length = exon_length, 
-                exon_total_length = exon_total_length))
+    # Calculate exon lengths
+    exon_length <- ends - starts + 1  # Exon length calculation
+    exon_total_length <- sum(exon_length)  # Total exon length
+    
+    # Return results
+    return(list(
+      exon_count = exon_count, 
+      exon_length = exon_length, 
+      exon_total_length = exon_total_length
+    ))
   }
-  
+
   # Function to summarize isoform data by grouping and merging sources
   summarize_isoform <- function(isoform_data) {
     message("Summarizing isoform data...")
     
     isoform_list <- split(isoform_data, isoform_data$isoformID)
+    
     result_list <- lapply(isoform_list, function(one_isoform) {
       one_isoform <- one_isoform[order(one_isoform$ReferenceSource, decreasing = FALSE), ]
       reference_sources <- unique(one_isoform$ReferenceSource)
       
       # Safely combine reference sources
-      valid_sources <- intersect(reference_sources, c("Full", "FLcircAS", "IsoCirc"))
-      combined_source <- paste(valid_sources, collapse = ",")
+      ReferenceSource = paste0(grep("Full", reference_sources, value = TRUE), ",", 
+							   grep("FLcircAS", reference_sources, value = TRUE), ",", 
+							   grep("IsoCirc", reference_sources, value = TRUE))
       
-      one_isoform$ReferenceSource <- combined_source
+      one_isoform$ReferenceSource <- ReferenceSource
       return(dplyr::distinct(one_isoform))
     })
     
@@ -94,44 +103,46 @@ MakeReferenceIsoform <- function(datapathfile, outputfile) {
   # Read and process all stout.list files
   message("Reading and processing input files...")
   
-  # 修正：读取包含路径信息的文本文件
-  DataFilePath <- data.table::fread(datapathfile,data.table = F)
+  # Read path file
+  DataFilePath <- data.table::fread(datapathfile, data.table = FALSE)
   
   stout.list.all.list <- list()
+  
   for (i in seq_along(DataFilePath$SamplePath)) {
-    message(sprintf("Processing file %d of %d: %s", i, nrow(DataFilePath), DataFilePath$SamplePath[i]))
+    message(sprintf(
+      "Processing file %d of %d: %s", 
+      i, 
+      nrow(DataFilePath), 
+      DataFilePath$SamplePath[i]
+    ))
     
-    # 构建完整的stout.list文件路径
+    # Build full path for stout.list
     stout.list.path <- file.path(DataFilePath$SamplePath[i], "vis/stout.list")
     
-    # 读取文件，header=TRUE表示使用第一行作为列名
-    stout.list <- fread(stout.list.path, data.table = FALSE, header = TRUE)
+    # Read file (note: header=FALSE as per original code)
+    stout.list <- data.table::fread(
+      stout.list.path, 
+      data.table = FALSE, 
+      header = FALSE
+    )
     
-    # 定义完整的列名向量
-    expected_cols <- c("Image_ID", "bsj", "chr", "start", "end", "total_exp",
-                      "isoform_number", "isoform_exp", "isoform_length",
-                      "isoform_state", "strand", "gene_id", "isoform_cirexon")
+    # Set column names
+    colnames(stout.list) <- c(
+      "Image_ID", "bsj", "chr", "start", "end", "total_exp",
+      "isoform_number", "isoform_exp", "isoform_length", 
+      "isoform_state", "strand", "gene_id", "isoform_cirexon"
+    )
     
-    # 使用setnames设置列名，处理可能的列数不匹配问题
-    if (ncol(stout.list) == length(expected_cols)) {
-      setnames(stout.list, expected_cols)
-    } else if (ncol(stout.list) == length(expected_cols) - 1) {
-      # 如果缺少一列，添加默认列名
-      warning(sprintf("File %s has %d columns but expected %d. Adding default column name.", 
-                     stout.list.path, ncol(stout.list), length(expected_cols)))
-      setnames(stout.list, c("V1", expected_cols[-1]))  # 添加"V1"作为第一列名
-    } else {
-      # 其他情况，抛出错误
-      stop(sprintf("Unexpected number of columns (%d) in file %s", 
-                  ncol(stout.list), stout.list.path))
-    }
+    # Select required columns
+    stout.list <- stout.list[, c(
+      "chr", "bsj", "start", "end", 
+      "isoform_state", "strand", "isoform_cirexon"
+    )]
     
-    # 选择需要的列
-    stout.list <- stout.list[, c("chr", "bsj", "start", "end", "isoform_state", "strand", "isoform_cirexon")]
     stout.list.all.list[[i]] <- stout.list
   }
   
-  # Combine all data and process
+  # Combine all data
   message("Combining and processing data...")
   stout.list.all <- do.call(rbind, stout.list.all.list)
   rownames(stout.list.all) <- NULL
@@ -156,21 +167,25 @@ MakeReferenceIsoform <- function(datapathfile, outputfile) {
     dplyr::select(-parse_results)
   
   # Select final columns and add reference source
-  stout.list.all <- stout.list.all[, c("chr", "bsj", "start", "end", "isoformID", "strand", 
-                                      "exon_count", "exon_length", "exon_total_length")]
+  stout.list.all <- stout.list.all[, c(
+    "chr", "bsj", "start", "end", "isoformID", "strand", 
+    "exon_count", "exon_length", "exon_total_length"
+  )]
   stout.list.all$ReferenceSource <- "Full"
   
   # Combine with external datasets
   message("Combining with external datasets...")
-  ReferenceIsoform <- rbind(FLcircAS[, names(stout.list.all)], 
-                           IsoCirc[, names(stout.list.all)], 
-                           stout.list.all)
+  ReferenceIsoform <- rbind(
+    FLcircAS[, names(stout.list.all)], 
+    IsoCirc[, names(stout.list.all)], 
+    stout.list.all
+  )
   
   # Count occurrences of each isoform
   message("Counting isoform occurrences...")
   isoform_count <- dplyr::count(ReferenceIsoform, isoformID) %>% arrange(desc(n))
   
-  # Split into groups based on occurrence count
+  # Split into groups by occurrence count
   isoform_count3 <- isoform_count[isoform_count$n == 3, ]
   isoform_count2 <- isoform_count[isoform_count$n == 2, ]
   isoform_count1 <- isoform_count[isoform_count$n == 1, ]
@@ -189,8 +204,15 @@ MakeReferenceIsoform <- function(datapathfile, outputfile) {
   
   # Write to file
   message(sprintf("Writing results to %s...", outputfile))
-  write.table(ReferenceIsoform_Long_And_Full, file = outputfile, 
-              sep = "\t", quote = FALSE, col.names = TRUE, append = FALSE, row.names = FALSE)
+  write.table(
+    ReferenceIsoform_Long_And_Full, 
+    file = outputfile, 
+    sep = "\t", 
+    quote = FALSE, 
+    col.names = TRUE, 
+    append = FALSE, 
+    row.names = FALSE
+  )
   
   message("Reference isoform generation completed successfully!")
 }
