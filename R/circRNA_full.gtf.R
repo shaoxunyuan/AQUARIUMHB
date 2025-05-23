@@ -100,12 +100,7 @@ circRNA_full.gtf <- function(datapathfile, referencefile) {
       isoform_id <- paste0("chr", row_data$chr, "|", exon_starts, "|", exon_ends, "|", row_data$strand)
       
       # Map reference source
-      reference_source <- mapvalues(
-        isoform_id,
-        ReferenceSet$isoformID,
-        ReferenceSet$ReferenceSource,
-        warn.missing = FALSE
-      )
+      reference_source <- plyr::mapvalues(isoform_id,ReferenceSet$isoformID,ReferenceSet$ReferenceSource,warn.missing = FALSE)
       
       # Build GTF attributes
       attributes <- paste0(
