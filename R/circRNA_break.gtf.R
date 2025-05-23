@@ -148,11 +148,16 @@ circRNA_break.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt",
         ReferenceSet_breakinRef <- ReferenceSet[ReferenceSet$bsj %in% type_breakinRef$bsj, ]
         type_breakoutRef_gtf <- type_break[type_break$bsj %in% setdiff(type_break$bsj, ReferenceSet$bsj), ]
 
-        # Process break isoforms in reference
+        # Process break isoforms in reference (show progress every 100 items)
         message("Processing break isoforms in reference set...")
         type_breakinRef.list <- list()
-        for(index in 1:nrow(type_breakinRef)) {
-            message(paste0("Processing reference break isoform ", index, "/", nrow(type_breakinRef)))
+        n_ref <- nrow(type_breakinRef)
+        for(index in 1:n_ref) {
+            if (index %% 100 == 0 || index == n_ref) {
+                percent <- round(index / n_ref * 100, 1)
+                message(paste0("Sample ", SampleID, ": Processed ", index, "/", n_ref, 
+                              " reference break isoforms (", percent, "%)"))
+            }
             onerow <- type_breakinRef[index, ]
             isoform_cirexon_ciri <- unlist(strsplit(onerow$isoform_cirexon, ","))
             break_index <- which(isoform_cirexon_ciri == "0-0")
@@ -194,7 +199,6 @@ circRNA_break.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt",
                 select_isoform_for_bsj <- select_isoform_for_bsj[, c("chr", "start", "end", "strand", "bsj", "isoformID",
                                                                        "isoform_state", "ReferenceSource")]
             } else {
-                message("No matching reference found. Using GTF annotation...")
                 select_isoform_for_bsj <- break_supplyfrom_gtf(onerow, "breakinRef_gtf")
             }
             type_breakinRef.list[[index]] <- select_isoform_for_bsj
@@ -202,12 +206,17 @@ circRNA_break.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt",
 
         type_breakinRef.df <- do.call(rbind, type_breakinRef.list)
 
-        # Process break isoforms not in reference using GTF annotation
+        # Process break isoforms not in reference using GTF annotation (show progress every 100 items)
         message("Processing break isoforms not in reference set...")
-        if(nrow(type_breakoutRef_gtf) > 0) {
+        n_non_ref <- nrow(type_breakoutRef_gtf)
+        if(n_non_ref > 0) {
             type_breakoutRef.list <- list()
-            for(index in 1:nrow(type_breakoutRef_gtf)) {
-                message(paste0("Processing non-reference break isoform ", index, "/", nrow(type_breakoutRef_gtf)))
+            for(index in 1:n_non_ref) {
+                if (index %% 100 == 0 || index == n_non_ref) {
+                    percent <- round(index / n_non_ref * 100, 1)
+                    message(paste0("Sample ", SampleID, ": Processed ", index, "/", n_non_ref, 
+                                  " non-reference break isoforms (", percent, "%)"))
+                }
                 onerow <- type_breakoutRef_gtf[index, ]
                 type_breakoutRef.list[[index]] <- break_supplyfrom_gtf(onerow, "breakoutRef_gtf")
             }
@@ -224,8 +233,13 @@ circRNA_break.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt",
         # Process exon information from isoformID
         message("Processing exon information from isoformID...")
         type_break_exon.list <- list()
-        for(index in 1:nrow(type_break.df)) {
-            message(paste0("Processing exon information for isoform ", index, "/", nrow(type_break.df)))
+        n_isoforms <- nrow(type_break.df)
+        for(index in 1:n_isoforms) {
+            if (index %% 100 == 0 || index == n_isoforms) {
+                percent <- round(index / n_isoforms * 100, 1)
+                message(paste0("Sample ", SampleID, ": Processed exon information for ", index, "/", n_isoforms, 
+                              " isoforms (", percent, "%)"))
+            }
             onerow <- type_break.df[index, ]
             exon_start <- strsplit(onerow$isoformID, split = "[|]")[[1]][2]
             exon_end <- strsplit(onerow$isoformID, split = "[|]")[[1]][3]
