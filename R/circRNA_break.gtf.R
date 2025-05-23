@@ -30,8 +30,7 @@ circRNA_break.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt",
     
     # Supply missing exon information for break isoform using GTF annotation
     break_supplyfrom_gtf <- function(onerow,isoform_state="breakinRef_gtf"){
-        message("Processing break isoform from GTF annotation...")
-        
+                
         # Parse existing exon structure
         isoform_cirexon_ciri <- unlist(strsplit(onerow$isoform_cirexon, ","))
         exon <- strsplit(unlist(strsplit(isoform_cirexon_ciri, ",")), split = "-")
