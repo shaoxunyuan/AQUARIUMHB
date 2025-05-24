@@ -1,6 +1,5 @@
 
 
-
 ## Table of Contents
 
 1. [Introduction](#1-introduction)  
@@ -30,18 +29,18 @@ For detailed sample information, please visit:  [GSE108887](https://www.ncbi.nlm
 1. Obtain the SRR accession list file (`SRR_Acc_List.txt`) from:   [NCBI SRA Study](https://www.ncbi.nlm.nih.gov/Traces/study/?acc=PRJNA429023&o=acc_s%3Aa)  
 
 2. Download all SRA files using ```prefetch```:  
-   
+
 ```bash
 prefetch ./SRR_Acc_List.txt
 ```
 
 3. Batch convert with compression using ```fasterq-dump```
-   
+
 ```bash
 for sra in SRR{6450118..6450129}.sra; do
 
-	fasterq-dump --split-3 "$sra" 
-	   
+    fasterq-dump --split-3 "$sra" 
+
 done
 ```
 
@@ -131,24 +130,24 @@ MakeReferenceIsoform(datapathfile = "PRJNA429023/DataPathFile.txt",outputfile = 
 
 - `datapathfile`：input file contains path information of input files, with two columns needed: `SampleID` and `SamplePath`.
 
-| SampleID   | SamplePath                    |
-|------------|-------------------------------|
-| SRR6450118 | PRJNA429023/SRR6450118/       |
-| SRR6450119 | PRJNA429023/SRR6450119/       |
-| ......     | ......                        |
-| SRR6450129 | PRJNA429023/SRR6450129/       |
-
+| SampleID   | SamplePath              |
+| ---------- | ----------------------- |
+| SRR6450118 | PRJNA429023/SRR6450118/ |
+| SRR6450119 | PRJNA429023/SRR6450119/ |
+| ......     | ......                  |
+| SRR6450129 | PRJNA429023/SRR6450129/ |
 
 - `outputfile`：output file contains all information of full-length transcripts from FLcircAS, IsoCirc, and blood samples. Example is as follows:
 
-| chr  | bsj                     | start     | end       | isoformID                                                         | strand | exon_count | exon_length | exon_total_length | ReferenceSource                                          |
-|------|-------------------------|-----------|-----------|-------------------------------------------------------------------|--------|------------|-------------|-------------------|----------------------------------------------------------|
-| 10   | 10:100036449\|100036604 | 100036604 | 100036449 | chr10\|100036449\|100036604\|+                                    | +      | 1          | 156         | 156               | FLcircAS_Liver                                           |
-| 3    | 3:48548532\|48550234    | 48548532  | 48550234  | chr3\|48548532,48549864,48550118\|48548537,48549960,48550234\|-   | -      | 3          | 6,97,117    | 220               | Full                                                     |
-| ...  | ...                     | ...       | ...       | ...                                                               | ...    | ...        | ...         | ...               | ...                                                      |
-| 2    | 2:231497095\|231503204  | 231497095 | 231503204 | chr2\|231497095,231503081\|231497252,231503204\|-                 | -      | 2          | 158,124     | 282               | Full,FLcircAS_HeLa,IsoCirc_SkeletalMuscle,IsoCirc_Testis |
+| chr | bsj                     | start     | end       | isoformID                                                       | strand | exon_count | exon_length | exon_total_length | ReferenceSource                                          |
+| --- | ----------------------- | --------- | --------- | --------------------------------------------------------------- | ------ | ---------- | ----------- | ----------------- | -------------------------------------------------------- |
+| 10  | 10:100036449\|100036604 | 100036604 | 100036449 | chr10\|100036449\|100036604\|+                                  | +      | 1          | 156         | 156               | FLcircAS_Liver                                           |
+| 3   | 3:48548532\|48550234    | 48548532  | 48550234  | chr3\|48548532,48549864,48550118\|48548537,48549960,48550234\|- | -      | 3          | 6,97,117    | 220               | Full                                                     |
+| ... | ...                     | ...       | ...       | ...                                                             | ...    | ...        | ...         | ...               | ...                                                      |
+| 2   | 2:231497095\|231503204  | 231497095 | 231503204 | chr2\|231497095,231503081\|231497252,231503204\|-               | -      | 2          | 158,124     | 282               | Full,FLcircAS_HeLa,IsoCirc_SkeletalMuscle,IsoCirc_Testis |
 
 ## 7. Construct gtf files for samples
+
 Due to reasons such as short sequencing read lengths or insufficient sequencing depth, the circRNAs identified by CIRT - full may fall into the following three types:
 
 - Full: Those that contain the full - length information within the transcript.
@@ -162,48 +161,53 @@ AQUARIUMHB uses the Full - length Reference Set constructed in the previous step
 1. circRNA_full.gtf
 
 ```r
-circRNA_full.gtf(datapathfile = "PRJNA429023/DataPathFile.txt",referencefile = "ReferenceIsoformFinal.txt")
+circRNA_full.gtf(datapathfile = "PRJNA429023/DataPathFile.txt",
+                 referencefile = "ReferenceIsoformFinal.txt")
 ```
 
 Ouput gtf files in `quant` directory for each sample:  
-| Sample ID               | Output File Path                   |
-|-------------------------|------------------------------------|
-| SRR6450118              | SRR6450118/quant/circRNA_full.gtf  |
-| SRR6450119              | SRR6450119/quant/circRNA_full.gtf  |
-| ...                     | ...                                |
-| SRR6450129              | SRR6450129/quant/circRNA_full.gtf  |
+
+| Sample ID  | Output File Path                  |
+| ---------- | --------------------------------- |
+| SRR6450118 | SRR6450118/quant/circRNA_full.gtf |
+| SRR6450119 | SRR6450119/quant/circRNA_full.gtf |
+| ...        | ...                               |
+| SRR6450129 | SRR6450129/quant/circRNA_full.gtf |
 
 2. circRNA_break.gtf
 
 ```r
-circRNA_break.gtf(datapathfile = "PRJNA429023/DataPathFile.txt",referencefile = "ReferenceIsoformFinal.txt")
+circRNA_break.gtf(datapathfile = "PRJNA429023/DataPathFile.txt",
+                  referencefile = "ReferenceIsoformFinal.txt")
 ```
 
 Ouput gtf files in `quant` directory for each sample:
-| Sample ID              | Output File Path                   |
-|------------------------|------------------------------------|
-| SRR6450118             | SRR6450118/quant/circRNA_break.gtf |
-| SRR6450119             | SRR6450119/quant/circRNA_break.gtf |
-| ...              		 | ...                                |
-| SRR6450129             | SRR6450129/quant/circRNA_break.gtf |
+
+| Sample ID  | Output File Path                   |
+| ---------- | ---------------------------------- |
+| SRR6450118 | SRR6450118/quant/circRNA_break.gtf |
+| SRR6450119 | SRR6450119/quant/circRNA_break.gtf |
+| ...        | ...                                |
+| SRR6450129 | SRR6450129/quant/circRNA_break.gtf |
 
 3. circRNA_only.gtf  
 
 ```r
-circRNA_only.gtf(datapathfile = "PRJNA429023/DataPathFile.txt",referencefile = "ReferenceIsoformFinal.txt")
+circRNA_only.gtf(datapathfile = "PRJNA429023/DataPathFile.txt",
+                 referencefile = "ReferenceIsoformFinal.txt")
 ```
 
 Ouput gtf files in `quant` directory for each sample:
-| Sample ID              | Output File Path                   |
-|------------------------|------------------------------------|
-| SRR6450118             | SRR6450118/quant/circRNA_only.gtf  |
-| SRR6450119             | SRR6450119/quant/circRNA_only.gtf  |
-| ...                    | ...                                |
-| SRR6450129             | SRR6450129/quant/circRNA_only.gtf  |
+
+| Sample ID  | Output File Path                  |
+| ---------- | --------------------------------- |
+| SRR6450118 | SRR6450118/quant/circRNA_only.gtf |
+| SRR6450119 | SRR6450119/quant/circRNA_only.gtf |
+| ...        | ...                               |
+| SRR6450129 | SRR6450129/quant/circRNA_only.gtf |
 
 ## 8. Author information
 
 * **Author**: Shaoxun Yuan  
 * **Affiliation**: School of Artificial Intelligence and Information Technology, Nanjing University of Chinese Medicine, China  
 * **Contact**: [yuanshaoxun@njucm.edu.cn](mailto:yuanshaoxun@njucm.edu.cn)  
-
