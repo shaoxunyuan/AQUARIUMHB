@@ -264,7 +264,7 @@ salmon quant --index ./${dir_quant}/index_final --libType IU --output ./${dir_qu
 ## 9. References
 [CIRI-full](https://ciri-cookbook.readthedocs.io/en/latest/CIRI-full.html#) 
 
-[AQUARIUM-HB](https://www.researchsquare.com/article/rs-5657706/v1#)
+[AQUARIUM_HB: a bioinformatics pipeline for human blood circular RNA analysis](https://www.researchsquare.com/article/rs-5657706/v1#)
 
 ## 10. Author information
 
