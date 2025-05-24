@@ -150,15 +150,15 @@ MakeReferenceIsoform(datapathfile = "PRJNA429023/DataPathFile.txt",outputfile = 
 
 Due to reasons such as short sequencing read lengths or insufficient sequencing depth, the circRNAs identified by CIRT - full may fall into the following three types:
 
-- Full: Those that contain the full - length information within the transcript.
+- **Full**: Those that contain the full - length information within the transcript.
 
-- Break: Those with partial internal transcript information missing.
+- **Break**: Those with partial internal transcript information missing.
 
-- Only: Those that contain only the information of the bsj locus.
+- **Only**: Those that contain only the information of the bsj locus.
 
 AQUARIUMHB uses the Full - length Reference Set constructed in the previous step to complete the Break and Only types of circRNAs, and then generates a gtf file for subsequent quantitative analysis.
 
-- circRNA_full.gtf
+- **circRNA_full.gtf**
 
 ```r
 circRNA_full.gtf(datapathfile = "PRJNA429023/DataPathFile.txt",referencefile = "ReferenceIsoformFinal.txt")
@@ -173,7 +173,7 @@ Ouput gtf files in `quant` directory for each sample:
 | ...        | ...                               |
 | SRR6450129 | SRR6450129/quant/circRNA_full.gtf |
 
-- circRNA_break.gtf
+- **circRNA_break.gtf**
 
 ```r
 circRNA_break.gtf(datapathfile = "PRJNA429023/DataPathFile.txt",referencefile = "ReferenceIsoformFinal.txt")
@@ -188,7 +188,7 @@ Ouput gtf files in `quant` directory for each sample:
 | ...        | ...                                |
 | SRR6450129 | SRR6450129/quant/circRNA_break.gtf |
 
-- circRNA_only.gtf  
+- **circRNA_only.gtf**
 
 ```r
 circRNA_only.gtf(datapathfile = "PRJNA429023/DataPathFile.txt",referencefile = "ReferenceIsoformFinal.txt")
