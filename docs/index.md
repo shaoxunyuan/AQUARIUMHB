@@ -8,7 +8,7 @@
 4. [Identifying Circular RNAs Using CIRI-full](#4-identifying-circular-rnas-using-ciri-full)  
 5. [Visualizing and Estimating Isoform Abundance Using CIRI-vis](#5-visualizing-and-estimating-isoform-abundance-using-ciri-vis)  
 6. [Constructing a Full-length Reference Set](#6-constructing-a-full-length-reference-set)
-7. [Construct gtf files for samples](#7-construct-gtf-files-for-samples)
+7. [Reconstruction of partial length circRNA isoforms](#7-reconstruction-of-partial-length-circrna-isoforms)
 8. [Author Information](#8-author-information)
 
 ## 1. Introduction
@@ -146,7 +146,7 @@ MakeReferenceIsoform(datapathfile = "PRJNA429023/DataPathFile.txt",outputfile = 
 | ... | ...                     | ...       | ...       | ...                                                             | ...    | ...        | ...         | ...               | ...                                                      |
 | 2   | 2:231497095\|231503204  | 231497095 | 231503204 | chr2\|231497095,231503081\|231497252,231503204\|-               | -      | 2          | 158,124     | 282               | Full,FLcircAS_HeLa,IsoCirc_SkeletalMuscle,IsoCirc_Testis |
 
-## 7. Construct gtf files for samples
+## 7. Reconstruction of partial length circRNA isoforms
 
 Due to reasons such as short sequencing read lengths or insufficient sequencing depth, the circRNAs identified by CIRT - full may fall into the following three types:
 
@@ -156,7 +156,7 @@ Due to reasons such as short sequencing read lengths or insufficient sequencing 
 
 - **Only**: Those that contain only the information of the bsj locus.
 
-AQUARIUMHB uses the Full - length Reference Set constructed in the previous step to complete the Break and Only types of circRNAs, and then generates a gtf file for subsequent quantitative analysis.
+AQUARIUMHB uses the Full - length Reference Set constructed in the previous step to reconstruct the Break and Only types of circRNAs, and then generates a gtf file for subsequent quantitative analysis for `salmon`.
 
 - **circRNA_full.gtf**
 
