@@ -245,25 +245,26 @@ gffread ./${dir_quant}/circRNA_final.gtf -g $fa -ME -w ./${dir_quant}/circRNA_ra
 
 readlen=$(zcat "$fastq1" | awk 'NR==2 {print length($0)}')  
 
-sh ./make.adapt.R $readlen ${dir_quant}/circRNA_raw.fa ${dir_quant}/circRNA_final.fa
+sh ./make.adapt.sh $readlen ./${dir_quant}/circRNA_raw.fa ./${dir_quant}/circRNA_final.fa
 
-cat ${dir_quant}/ref_linear.fa ${dir_quant}/circRNA_final.fa > ${dir_quant}/final.fa
+cat ./${dir_quant}/ref_linear.fa ./${dir_quant}/circRNA_final.fa > ./${dir_quant}/final.fa
 
-cat $gtf ${dir_quant}/circRNA_final.gtf > ${dir_quant}/final.gtf
+cat $gtf ./${dir_quant}/circRNA_final.gtf > ./${dir_quant}/final.gtf
 
 # salmon index
 
-salmon index --kmerLen 31 --transcripts ${dir_quant}/final.fa --index ${dir_quant}/index_final --keepDuplicates
+salmon index --kmerLen 31 --transcripts ./${dir_quant}/final.fa --index ./${dir_quant}/index_final --keepDuplicates
 
 # salmon quant
 
-salmon quant --index ${dir_quant}/index_final --libType IU --output ${dir_quant}/profile_results --geneMap ${dir_quant}/final.gtf  \
+salmon quant --index ./${dir_quant}/index_final --libType IU --output ./${dir_quant}/profile_results --geneMap ./${dir_quant}/final.gtf  \
 					   --mates1 $fastq1 --mates2 $fastq2 --threads $THREAD_COUNT --seqBias --gcBias --validateMappings
 ```
 
 ## 9. References
-https://github.com/bioinfo-biols/CIRI-full 
+[CIRI-full](https://ciri-cookbook.readthedocs.io/en/latest/CIRI-full.html#) 
 
+[AQUARIUM-HB](https://www.researchsquare.com/article/rs-5657706/v1#)
 
 ## 10. Author information
 
