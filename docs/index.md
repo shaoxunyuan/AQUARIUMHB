@@ -3,13 +3,22 @@
 ## Table of Contents
 
 1. [Introduction](#1-introduction)  
+
 2. [Quick Start with Example Data](#2-quick-start-with-example-data)  
+
 3. [Alignment to Reference Genome](#3-alignment-to-reference-genome)  
+
 4. [Identifying Circular RNAs Using CIRI-full](#4-identifying-circular-rnas-using-ciri-full)  
+
 5. [Visualizing and Estimating Isoform Abundance Using CIRI-vis](#5-visualizing-and-estimating-isoform-abundance-using-ciri-vis)  
+
 6. [Constructing a Full-length Reference Set](#6-constructing-a-full-length-reference-set)
+
 7. [Reconstruction of partial length circRNA isoforms](#7-reconstruction-of-partial-length-circrna-isoforms)
 
+8. [Quantifications of both linear and cicurlar isoforms](#8-quantifications-of-both-linear-and-cicurlar-isoforms)
+
+9. [References](#9-references)
 
 10. [Author Information](#10-author-information)
 
@@ -205,7 +214,47 @@ Ouput gtf files in `quant` directory for each sample:
 | ...        | ...                               |
 | SRR6450129 | SRR6450129/quant/circRNA_only.gtf |
 
-## 8
+## 8. Quantifications of both linear and cicurlar isoforms
+
+```bash
+# Select sample
+
+BioSample=SRR6450118
+fastq1=`./${BioSample}_1.fastq.gz`
+fastq2=`./${BioSample}_2.fastq.gz`
+dir_quant=`./${BioSample}/quant`
+
+# Path of reference genome and annotation
+
+fa=`./Homo_sapiens.GRCh38.dna_sm.chromosomes.fa`
+gtf=`./Homo_sapiens.GRCh38.94.chr.gtf`
+
+# linear / cicular reference fasta and annotation
+
+gffread "$gtf" -g "$fa" -ME -w "${dir_quant}/ref_linear.fa"
+
+cat ./${dir_quant}/circRNA_full.gtf ./${dir_quant}/circRNA_break.gtf ./${dir_quant}/circRNA_only.gtf> ./${dir_quant}/circRNA_final.gtf
+
+gffread ./${dir_quant}/circRNA_final.gtf -g $fa -ME -w ./${dir_quant}/circRNA_raw.fa
+
+readlen=$(zcat "$fastq1" | awk 'NR==2 {print length($0)}')  
+sh ./make.adapt.R $readlen ${dir_quant}/circRNA_raw.fa ${dir_quant}/circRNA_final.fa
+
+cat ${dir_quant}/ref_linear.fa ${dir_quant}/circRNA_final.fa > ${dir_quant}/final.fa
+cat $gtf ${dir_quant}/circRNA_final.gtf > ${dir_quant}/final.gtf
+
+# salmon index
+
+salmon index --kmerLen 31 --transcripts ${dir_quant}/final.fa --index ${dir_quant}/index_final --keepDuplicates
+
+# salmon quant
+
+salmon quant --index ${dir_quant}/index_final --libType IU --output ${dir_quant}/profile_results --geneMap ${dir_quant}/final.gtf --mates1 $fastq1 --mates2 $fastq2 --threads 8 --seqBias --gcBias --validateMappings
+```
+
+## 9. References
+
+
 
 ## 10. Author information
 
