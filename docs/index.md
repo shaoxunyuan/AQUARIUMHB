@@ -9,7 +9,9 @@
 5. [Visualizing and Estimating Isoform Abundance Using CIRI-vis](#5-visualizing-and-estimating-isoform-abundance-using-ciri-vis)  
 6. [Constructing a Full-length Reference Set](#6-constructing-a-full-length-reference-set)
 7. [Reconstruction of partial length circRNA isoforms](#7-reconstruction-of-partial-length-circrna-isoforms)
-8. [Author Information](#8-author-information)
+
+
+10. [Author Information](#10-author-information)
 
 ## 1. Introduction
 
@@ -203,7 +205,9 @@ Ouput gtf files in `quant` directory for each sample:
 | ...        | ...                               |
 | SRR6450129 | SRR6450129/quant/circRNA_only.gtf |
 
-## 8. Author information
+## 8
+
+## 10. Author information
 
 * **Author**: Shaoxun Yuan  
 * **Affiliation**: School of Artificial Intelligence and Information Technology, Nanjing University of Chinese Medicine, China  
