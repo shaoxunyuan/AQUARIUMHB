@@ -161,9 +161,9 @@ AQUARIUMHB uses the Full - length Reference Set constructed in the previous step
 
 1. circRNA_full.gtf
 
-
+```r
 circRNA_full.gtf(datapathfile = "PRJNA429023/DataPathFile.txt",referencefile = "ReferenceIsoformFinal.txt")
-
+```
 
 Ouput gtf files in `quant` directory for each sample:  
 | Sample ID               | Output File Path                   |
@@ -175,9 +175,9 @@ Ouput gtf files in `quant` directory for each sample:
 
 2. circRNA_break.gtf
 
-
+```r
 circRNA_break.gtf(datapathfile = "PRJNA429023/DataPathFile.txt",referencefile = "ReferenceIsoformFinal.txt")
-
+```
 
 Ouput gtf files in `quant` directory for each sample:
 | Sample ID              | Output File Path                   |
@@ -189,9 +189,9 @@ Ouput gtf files in `quant` directory for each sample:
 
 3. circRNA_only.gtf  
 
-
+```r
 circRNA_only.gtf(datapathfile = "PRJNA429023/DataPathFile.txt",referencefile = "ReferenceIsoformFinal.txt")
-
+```
 
 Ouput gtf files in `quant` directory for each sample:
 | Sample ID              | Output File Path                   |
