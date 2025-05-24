@@ -158,7 +158,7 @@ Due to reasons such as short sequencing read lengths or insufficient sequencing 
 
 AQUARIUMHB uses the Full - length Reference Set constructed in the previous step to complete the Break and Only types of circRNAs, and then generates a gtf file for subsequent quantitative analysis.
 
-1.  circRNA_full.gtf
+- circRNA_full.gtf
 
 ```r
 circRNA_full.gtf(datapathfile = "PRJNA429023/DataPathFile.txt",referencefile = "ReferenceIsoformFinal.txt")
@@ -173,7 +173,7 @@ Ouput gtf files in `quant` directory for each sample:
 | ...        | ...                               |
 | SRR6450129 | SRR6450129/quant/circRNA_full.gtf |
 
-2.  circRNA_break.gtf
+- circRNA_break.gtf
 
 ```r
 circRNA_break.gtf(datapathfile = "PRJNA429023/DataPathFile.txt",referencefile = "ReferenceIsoformFinal.txt")
@@ -188,7 +188,7 @@ Ouput gtf files in `quant` directory for each sample:
 | ...        | ...                                |
 | SRR6450129 | SRR6450129/quant/circRNA_break.gtf |
 
-3.  circRNA_only.gtf  
+- circRNA_only.gtf  
 
 ```r
 circRNA_only.gtf(datapathfile = "PRJNA429023/DataPathFile.txt",referencefile = "ReferenceIsoformFinal.txt")
