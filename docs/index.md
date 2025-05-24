@@ -180,10 +180,10 @@ circRNA_break.gtf(datapathfile = "PRJNA429023/DataPathFile.txt",referencefile = 
 Ouput gtf files in `quant` directory for each sample:
 | Sample ID               | Output File Path                     |
 |-------------------------|--------------------------------------|
-| SRR6450118              | `SRR6450118/quant/circRNA_break.gtf`  |
-| SRR6450119              | `SRR6450119/quant/circRNA_break.gtf`  |
+| SRR6450118              | `SRR6450118/quant/circRNA_break.gtf` |
+| SRR6450119              | `SRR6450119/quant/circRNA_break.gtf` |
 | ...                     | ...                                  |
-| SRR6450129              | `SRR6450129/quant/circRNA_break.gtf`  |
+| SRR6450129              | `SRR6450129/quant/circRNA_break.gtf` |
 
 3. circRNA_only.gtf  
 ```R
