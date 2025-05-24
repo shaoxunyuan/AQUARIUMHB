@@ -220,27 +220,35 @@ Ouput gtf files in `quant` directory for each sample:
 # Select sample
 
 BioSample=SRR6450118
-fastq1=`./${BioSample}_1.fastq.gz`
-fastq2=`./${BioSample}_2.fastq.gz`
-dir_quant=`./${BioSample}/quant`
+
+fastq1=./${BioSample}_1.fastq.gz
+
+fastq2=./${BioSample}_2.fastq.gz
+
+dir_quant=./${BioSample}/quant
+
+THREAD_COUNT=8 
 
 # Path of reference genome and annotation
 
-fa=`./Homo_sapiens.GRCh38.dna_sm.chromosomes.fa`
-gtf=`./Homo_sapiens.GRCh38.94.chr.gtf`
+fa=./Homo_sapiens.GRCh38.dna_sm.chromosomes.fa
+
+gtf=./Homo_sapiens.GRCh38.94.chr.gtf
 
 # linear / cicular reference fasta and annotation
 
-gffread "$gtf" -g "$fa" -ME -w "${dir_quant}/ref_linear.fa"
+gffread $gtf -g $fa -ME -w ${dir_quant}/ref_linear.fa
 
 cat ./${dir_quant}/circRNA_full.gtf ./${dir_quant}/circRNA_break.gtf ./${dir_quant}/circRNA_only.gtf> ./${dir_quant}/circRNA_final.gtf
 
 gffread ./${dir_quant}/circRNA_final.gtf -g $fa -ME -w ./${dir_quant}/circRNA_raw.fa
 
 readlen=$(zcat "$fastq1" | awk 'NR==2 {print length($0)}')  
+
 sh ./make.adapt.R $readlen ${dir_quant}/circRNA_raw.fa ${dir_quant}/circRNA_final.fa
 
 cat ${dir_quant}/ref_linear.fa ${dir_quant}/circRNA_final.fa > ${dir_quant}/final.fa
+
 cat $gtf ${dir_quant}/circRNA_final.gtf > ${dir_quant}/final.gtf
 
 # salmon index
@@ -249,11 +257,12 @@ salmon index --kmerLen 31 --transcripts ${dir_quant}/final.fa --index ${dir_quan
 
 # salmon quant
 
-salmon quant --index ${dir_quant}/index_final --libType IU --output ${dir_quant}/profile_results --geneMap ${dir_quant}/final.gtf --mates1 $fastq1 --mates2 $fastq2 --threads 8 --seqBias --gcBias --validateMappings
+salmon quant --index ${dir_quant}/index_final --libType IU --output ${dir_quant}/profile_results --geneMap ${dir_quant}/final.gtf  \
+					   --mates1 $fastq1 --mates2 $fastq2 --threads $THREAD_COUNT --seqBias --gcBias --validateMappings
 ```
 
 ## 9. References
-
+https://github.com/bioinfo-biols/CIRI-full 
 
 
 ## 10. Author information
