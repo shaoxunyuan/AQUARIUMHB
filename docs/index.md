@@ -64,6 +64,10 @@ fa=./Homo_sapiens.GRCh38.dna_sm.chromosomes.fa
 
 gtf=./Homo_sapiens.GRCh38.94.chr.gtf
 
+# Choose multi-threading based on the specific situation.
+
+THREAD_COUNT=8 
+
 # BioSample ID. Use SRR6450118 as an example:
 
 BioSample=SRR6450118
@@ -72,10 +76,7 @@ dir_detect=${BioSample}/full
 
 mkdir -p ${dir_detect}
 
-# Choose multi-threading based on the specific situation.
-THREAD_COUNT=8 
-
-bwa mem -T 10 ${fa} ${BioSample}_1.fastq ${BioSample}_2.fastq -o ${BioSample}/full/align.sam -t $THREAD_COUNT
+bwa mem -T 10 ${fa} ${BioSample}_1.fastq ${BioSample}_2.fastq -o ${dir_detect}/align.sam -t ${THREAD_COUNT}
 
 ```
 
