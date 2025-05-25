@@ -216,11 +216,21 @@ Ouput gtf files in `quant` directory for each sample:
 
 ## 8. Quantifications of both linear and cicurlar isoforms
 
-To quantify both linear and circular isoforms simultaneously, users need to set the sample name for quantification (`BioSample`), the paths to the paired-end sequencing FASTQ files (`fastq1` and `fastq2`), the output path for the quantification results (`dir_quant`), and the number of threads (`THREAD_COUNT`).
+To quantify both linear and circular isoforms simultaneously, users need to set the following variables:
+
+- sample name for quantification (`BioSample`)
+
+- paths to the paired-end sequencing FASTQ files (`fastq1` and `fastq2`)
+
+- output path for the quantification results (`dir_quant`)
+
+- number of threads (`THREAD_COUNT`).
 
 Users also need to specify the path to the reference genome (`fa`) and the path to the reference genome annotation file (`gtf`).
 
-To pseudo-linearize circular isoforms, the `make.adapt.sh` script is required to add adapter sequences to the circular isoform sequence file `circRNA_raw.fa`. This script can be downloaded from https://github.com/shaoxunyuan/AQUARIUMHB/tree/main/inst/scripts.
+To pseudo-linearize circular isoforms, the `make.adapt.sh` script is required to add adapter sequences to the circular isoform sequence file circRNA_raw.fa. 
+
+`make.adapt.sh` can be downloaded from [AQUARIUMHB github](https://github.com/shaoxunyuan/AQUARIUMHB/tree/main/inst/scripts#)
 
 ```bash
 # Select sample
