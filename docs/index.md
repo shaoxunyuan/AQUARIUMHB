@@ -232,13 +232,16 @@ To quantify both linear and circular isoforms simultaneously, users need to set 
 - number of threads (`THREAD_COUNT`)
 
 ```bash
-# Select sample for quantification
 
-# Path of reference genome and annotation
+## Path of reference genome and annotation
 
 fa=./Homo_sapiens.GRCh38.dna_sm.chromosomes.fa
 
 gtf=./Homo_sapiens.GRCh38.94.chr.gtf
+
+THREAD_COUNT=8 
+
+## Select sample for quantification
 
 BioSample=SRR6450118
 
@@ -248,12 +251,12 @@ fastq2=./${BioSample}_2.fastq.gz
 
 dir_quant=./${BioSample}/quant
 
-THREAD_COUNT=8 
+
 ```
 
 To pseudo-linearize circular isoforms, the `make.adapt.sh` script is required to add adapter sequences to the circular isoform sequence file circRNA_raw.fa. 
 
-`make.adapt.sh` can be downloaded from [AQUARIUMHB github](https://github.com/shaoxunyuan/AQUARIUMHB/tree/main/inst/scripts#)
+`make.adapt.sh` can be downloaded from [AQUARIUMHB/tree/main/inst/scripts](https://github.com/shaoxunyuan/AQUARIUMHB/tree/main/inst/scripts#)
 
 
 
