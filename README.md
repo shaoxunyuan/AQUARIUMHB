@@ -26,6 +26,6 @@ https://github.com/shaoxunyuan/AQUARIUMHB/issues).
 # Contact
 
 For additional inquiries, contact us at: 
-Email: shaoxunyuan@njucm.edu.cn
+Email: yuanshaoxun@njucm.edu.cn
 
 
