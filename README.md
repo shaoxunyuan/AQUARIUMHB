@@ -4,6 +4,8 @@ A comprehesive toolkit for identify, annotate, quantify, and analyze human blood
 
 # Installation
 
+AQUARIUMHB including 
+
 You can install the package directly from GitHub,
 
 ```r

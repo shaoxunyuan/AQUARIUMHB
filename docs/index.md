@@ -231,10 +231,6 @@ To quantify both linear and circular isoforms simultaneously, users need to set 
 
 - number of threads (`THREAD_COUNT`)
 
-To pseudo-linearize circular isoforms, the `make.adapt.sh` script is required to add adapter sequences to the circular isoform sequence file circRNA_raw.fa. 
-
-`make.adapt.sh` can be downloaded from [AQUARIUMHB github](https://github.com/shaoxunyuan/AQUARIUMHB/tree/main/inst/scripts#)
-
 ```bash
 # Select sample for quantification
 
@@ -254,6 +250,12 @@ dir_quant=./${BioSample}/quant
 
 THREAD_COUNT=8 
 ```
+
+To pseudo-linearize circular isoforms, the `make.adapt.sh` script is required to add adapter sequences to the circular isoform sequence file circRNA_raw.fa. 
+
+`make.adapt.sh` can be downloaded from [AQUARIUMHB github](https://github.com/shaoxunyuan/AQUARIUMHB/tree/main/inst/scripts#)
+
+
 
 ```bash
 # linear / cicular reference fasta and annotation
@@ -297,6 +299,18 @@ Ouput quantification result files in quant directory for each sample:
 | SRR6450119 | SRR6450119/quant/profile_results/quant.sf |
 | ...        | ...                                       |
 | SRR6450129 | SRR6450129/quant/profile_results/quant.sf |
+
+Quantification result for `SRR6450118` in `SRR6450118/quant/profile_results/quant.sf` : 
+
+| Name | Length | EffectiveLength | TPM | NumReads |
+| --- | --- | --- | --- | --- |
+| ENST00000456328 | 1657 | 1382.022 | 0.553826 | 8.485 |
+| ENST00000450305 | 632 | 391.000 | 0.000000 | 0.000 |
+| ENST00000488147 | 1351 | 1330.162 | 1.968974 | 29.034 |
+| ...... | ...... | ....... | ...... | ....... |
+| chr18|79695225,79695977,79697860,79701813,79704767|79695308,79696070,79697988,79702284,79704917|+ | 1031 | 885.066 | 1.349396 | 13.240 |
+| chr18|79728907,79736355|79729069,79736521|+ | 431 | 276.218 | 1.349472 | 4.132 |
+| chrY|11532940,11730889|11532945,11730985|+ | 204 | 35.000 | 0.000000 | 0.000 |
 
 ## 9. References
 
