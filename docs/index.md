@@ -218,22 +218,30 @@ Ouput gtf files in `quant` directory for each sample:
 
 To quantify both linear and circular isoforms simultaneously, users need to set the following variables:
 
+-path to the reference genome (`fa`)
+
+-path to the reference genome annotation (`gtf)
+
 - sample name for quantification (`BioSample`)
 
 - paths to the paired-end sequencing FASTQ files (`fastq1` and `fastq2`)
 
 - output path for the quantification results (`dir_quant`)
 
-- number of threads (`THREAD_COUNT`).
-
-Users also need to specify the path to the reference genome (`fa`) and the path to the reference genome annotation file (`gtf`).
+- number of threads (`THREAD_COUNT`)
 
 To pseudo-linearize circular isoforms, the `make.adapt.sh` script is required to add adapter sequences to the circular isoform sequence file circRNA_raw.fa. 
 
 `make.adapt.sh` can be downloaded from [AQUARIUMHB github](https://github.com/shaoxunyuan/AQUARIUMHB/tree/main/inst/scripts#)
 
 ```bash
-# Select sample
+# Select sample for quantification
+
+# Path of reference genome and annotation
+
+fa=./Homo_sapiens.GRCh38.dna_sm.chromosomes.fa
+
+gtf=./Homo_sapiens.GRCh38.94.chr.gtf
 
 BioSample=SRR6450118
 
@@ -244,13 +252,9 @@ fastq2=./${BioSample}_2.fastq.gz
 dir_quant=./${BioSample}/quant
 
 THREAD_COUNT=8 
+```
 
-# Path of reference genome and annotation
-
-fa=./Homo_sapiens.GRCh38.dna_sm.chromosomes.fa
-
-gtf=./Homo_sapiens.GRCh38.94.chr.gtf
-
+```bash
 # linear / cicular reference fasta and annotation
 
 gffread $gtf -g $fa -ME -w ${dir_quant}/ref_linear.fa
@@ -266,21 +270,26 @@ sh ./make.adapt.sh $readlen ./${dir_quant}/circRNA_raw.fa ./${dir_quant}/circRNA
 cat ./${dir_quant}/ref_linear.fa ./${dir_quant}/circRNA_final.fa > ./${dir_quant}/final.fa
 
 cat $gtf ./${dir_quant}/circRNA_final.gtf > ./${dir_quant}/final.gtf
+```
 
+```bash
 # salmon index
 
 salmon index --kmerLen 31 --transcripts ./${dir_quant}/final.fa --index ./${dir_quant}/index_final --keepDuplicates
+```
 
+```bash
 # salmon quant
 
 salmon quant --index ./${dir_quant}/index_final --libType IU --geneMap ./${dir_quant}/final.gtf --threads $THREAD_COUNT --seqBias --gcBias --validateMappings \
 
-					   --mates1 $fastq1 --mates2 $fastq2  \
-					   
-					   --output ./${dir_quant}/profile_results
+                       --mates1 $fastq1 --mates2 $fastq2  \
+
+                       --output ./${dir_quant}/profile_results
 ```
 
 ## 9. References
+
 [CIRI-full](https://ciri-cookbook.readthedocs.io/en/latest/CIRI-full.html#) 
 
 [AQUARIUM_HB: a bioinformatics pipeline for human blood circular RNA analysis](https://www.researchsquare.com/article/rs-5657706/v1#)
