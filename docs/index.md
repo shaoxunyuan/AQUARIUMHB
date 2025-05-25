@@ -219,9 +219,9 @@ Ouput gtf files in `quant` directory for each sample:
 
 To quantify both linear and circular isoforms simultaneously, users need to set the following variables:
 
--path to the reference genome (`fa`)
+- path to the reference genome (`fa`)
 
--path to the reference genome annotation (`gtf)
+- path to the reference genome annotation (`gtf)
 
 - sample name for quantification (`BioSample`)
 
@@ -288,6 +288,15 @@ salmon quant --index ./${dir_quant}/index_final --libType IU --geneMap ./${dir_q
 
                        --output ./${dir_quant}/profile_results
 ```
+
+Ouput quantification result files in quant directory for each sample:
+
+| Sample ID  | Output File Path                          |
+| ---------- | ------------------------------------------|
+| SRR6450118 | SRR6450118/quant/profile_results/quant.sf |
+| SRR6450119 | SRR6450119/quant/profile_results/quant.sf |
+| ...        | ...                                       |
+| SRR6450129 | SRR6450129/quant/profile_results/quant.sf |
 
 ## 9. References
 
