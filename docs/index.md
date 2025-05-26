@@ -158,14 +158,15 @@ MakeReferenceIsoform(datapathfile = "PRJNA429023/DataPathFile.txt",outputfile = 
 | ... | ...                     | ...       | ...       | ...                                                             | ...    | ...        | ...         | ...               | ...                                                      |
 | 2   | 2:231497095\|231503204  | 231497095 | 231503204 | chr2\|231497095,231503081\|231497252,231503204\|-               | -      | 2          | 158,124     | 282               | Full,FLcircAS_HeLa,IsoCirc_SkeletalMuscle,IsoCirc_Testis |
 
-`ReferenceSource`: Sources of full-length isoforms. For example:
+`ReferenceSource` Sources of full-length isoforms. For example:
 
-	`FLcircAS_Liver` represents isoform from FLcircAS dataset, 
-	
-	`Full` represents isoform from blood samples according pipeline,
-	
-	`Full,FLcircAS_HeLa,IsoCirc_SkeletalMuscle,IsoCirc_Testis` represents isoform from FLcircAS, IsoCirc and blood samples.
-	
+
+    `FLcircAS_Liver`: represents isoform from FLcircAS dataset, 
+
+    `Full`: represents isoform from blood samples according pipeline,
+
+    `Full,FLcircAS_HeLa,IsoCirc_SkeletalMuscle,IsoCirc_Testis`: represents isoform from FLcircAS, IsoCirc and blood samples.
+
 ## 7. Reconstruction of partial length circRNA isoforms
 
 Due to reasons such as short sequencing read lengths or insufficient sequencing depth, the circRNAs identified by CIRT - full may fall into the following three types:
@@ -305,7 +306,7 @@ salmon quant --index ./${dir_quant}/index_final --libType IU --geneMap ./${dir_q
 Ouput quantification result files in quant directory for each sample:
 
 | Sample ID  | Output File Path                          |
-| ---------- | ------------------------------------------|
+| ---------- | ----------------------------------------- |
 | SRR6450118 | SRR6450118/quant/profile_results/quant.sf |
 | SRR6450119 | SRR6450119/quant/profile_results/quant.sf |
 | ...        | ...                                       |
@@ -313,15 +314,15 @@ Ouput quantification result files in quant directory for each sample:
 
 Quantification result for `SRR6450118` in `SRR6450118/quant/profile_results/quant.sf` : 
 
-| Name | Length | EffectiveLength | TPM | NumReads |
-| --- | --- | --- | --- | --- |
-| ENST00000456328 | 1657 | 1382.022 | 0.553826 | 8.485 |
-| ENST00000450305 | 632 | 391.000 | 0.000000 | 0.000 |
-| ENST00000488147 | 1351 | 1330.162 | 1.968974 | 29.034 |
-| ...... | ...... | ....... | ...... | ....... |
-| chr18\|79695225,79695977,79697860,79701813,79704767\|79695308,79696070,79697988,79702284,79704917\|+ | 1031 | 885.066 | 1.349396 | 13.240 |
-| chr18\|79728907,79736355\|79729069,79736521\|+ | 431 | 276.218 | 1.349472 | 4.132 |
-| chrY\|11532940,11730889\|11532945,11730985\|+ | 204 | 35.000 | 0.000000 | 0.000 |
+| Name                                                                                                 | Length | EffectiveLength | TPM      | NumReads |
+| ---------------------------------------------------------------------------------------------------- | ------ | --------------- | -------- | -------- |
+| ENST00000456328                                                                                      | 1657   | 1382.022        | 0.553826 | 8.485    |
+| ENST00000450305                                                                                      | 632    | 391.000         | 0.000000 | 0.000    |
+| ENST00000488147                                                                                      | 1351   | 1330.162        | 1.968974 | 29.034   |
+| ......                                                                                               | ...... | .......         | ......   | .......  |
+| chr18\|79695225,79695977,79697860,79701813,79704767\|79695308,79696070,79697988,79702284,79704917\|+ | 1031   | 885.066         | 1.349396 | 13.240   |
+| chr18\|79728907,79736355\|79729069,79736521\|+                                                       | 431    | 276.218         | 1.349472 | 4.132    |
+| chrY\|11532940,11730889\|11532945,11730985\|+                                                        | 204    | 35.000          | 0.000000 | 0.000    |
 
 ## 9. References
 
@@ -334,3 +335,5 @@ Quantification result for `SRR6450118` in `SRR6450118/quant/profile_results/quan
 * **Author**: Shaoxun Yuan  
 * **Affiliation**: School of Artificial Intelligence and Information Technology, Nanjing University of Chinese Medicine, China  
 * **Contact**: [yuanshaoxun@njucm.edu.cn](mailto:yuanshaoxun@njucm.edu.cn)  
+
+

@@ -38,8 +38,8 @@ https://shaoxunyuan.github.io/AQUARIUMHB/
 
 ## Bug Reports
 
-If you encounter any issues, have questions, or would like to make suggestions, 
-feel free to report them at our 
+If you encounter any issues, have questions, or would like to make suggestions, report them at 
+
 [bug tracker](https://github.com/shaoxunyuan/AQUARIUMHB/issues).
 
 ## Contact
