@@ -32,20 +32,20 @@ Using PRJNA429023 as example data
 
 The PRJNA429023 dataset contains 12 RNA-seq samples derived from blood:
 
-- 6 healthy control samples  
-- 6 intellectual disability patient samples  
+* 6 healthy control samples  
+* 6 intellectual disability patient samples  
 
 For detailed sample information, please visit:  [GSE108887](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE108887)
 
-1. Obtain the SRR accession list file (`SRR_Acc_List.txt`) from:   [NCBI SRA Study](https://www.ncbi.nlm.nih.gov/Traces/study/?acc=PRJNA429023&o=acc_s%3Aa)  
+- Obtain the SRR accession list file (`SRR_Acc_List.txt`) from:   [NCBI SRA Study](https://www.ncbi.nlm.nih.gov/Traces/study/?acc=PRJNA429023&o=acc_s%3Aa)  
 
-2. Download all SRA files using ```prefetch```:  
+- Download all SRA files using ```prefetch```:  
 
 ```bash
 prefetch ./SRR_Acc_List.txt
 ```
 
-3. Batch convert with compression using ```fasterq-dump```
+- Batch convert with compression using ```fasterq-dump```
 
 ```bash
 for sra in SRR{6450118..6450129}.sra; do
