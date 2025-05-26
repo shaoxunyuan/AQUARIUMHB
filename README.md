@@ -2,7 +2,7 @@
 
 A toolkit for identifying, annotating, quantifying, and analyzing human blood circRNAs from RNA-seq data.
 
-<img src="docs/AQUARIUM-HB.png" alt="AQUARIUMHB Workflow" width="450">
+<img src="docs/AQUARIUM-HB.png" alt="AQUARIUMHB Workflow" width="300">
 
 The identification module of AQUARIUMHB consists of three main components:
 
