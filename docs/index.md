@@ -158,8 +158,14 @@ MakeReferenceIsoform(datapathfile = "PRJNA429023/DataPathFile.txt",outputfile = 
 | ... | ...                     | ...       | ...       | ...                                                             | ...    | ...        | ...         | ...               | ...                                                      |
 | 2   | 2:231497095\|231503204  | 231497095 | 231503204 | chr2\|231497095,231503081\|231497252,231503204\|-               | -      | 2          | 158,124     | 282               | Full,FLcircAS_HeLa,IsoCirc_SkeletalMuscle,IsoCirc_Testis |
 
-`ReferenceSource`: full-length isoform
+`ReferenceSource`: Sources of full-length isoforms. For example:
 
+	`FLcircAS_Liver` represents isoform from FLcircAS dataset, 
+	
+	`Full` represents isoform from blood samples according pipeline,
+	
+	`Full,FLcircAS_HeLa,IsoCirc_SkeletalMuscle,IsoCirc_Testis` represents isoform from FLcircAS, IsoCirc and blood samples.
+	
 ## 7. Reconstruction of partial length circRNA isoforms
 
 Due to reasons such as short sequencing read lengths or insufficient sequencing depth, the circRNAs identified by CIRT - full may fall into the following three types:
