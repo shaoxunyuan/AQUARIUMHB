@@ -2,12 +2,12 @@
 
 A comprehensive toolkit for identifying, annotating, quantifying, and analyzing human blood circular RNAs from RNA-seq data.
 
-![AQUARIUMHB Workflow](docs/AQUARIUM-HB.png)
+![AQUARIUMHB Workflow](docs/AQUARIUM-HB.png){style="width:50%"}
 
 The identification module of AQUARIUMHB consists of three main components:
 
 1. **CircRNA Identification**  
-   Based on the CIRI-full pipeline. Download the scripts from [AQUARIUMHB scripts](https://github.com/shaoxunyuan/AQUARIUMHB/tree/main/inst/scripts).
+   Based on the `CIRI-full` pipeline. Download the scripts from [AQUARIUMHB scripts](https://github.com/shaoxunyuan/AQUARIUMHB/tree/main/inst/scripts).
 
 2. **Construction of Full-length Reference Set**  
    Utilizes the `MakeReferenceIsoform` function from the R package `AQUARIUMHB`.
