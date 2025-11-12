@@ -4,12 +4,12 @@
 \alias{MakeReferenceIsoform}
 \title{Generate Reference Isoform Data}
 \usage{
-MakeReferenceIsoform(datapathfile, outputfile)
+MakeReferenceIsoform(SamplePath, outputfile)
 }
 \arguments{
-\item{datapathfile}{Path to the text file containing sample paths}
+\item{outputfile}{Path of the output file where results will be saved}
 
-\item{outputfile}{Path to the output file where results will be saved}
+\item{samplepath}{Path dataframe of sample paths}
 }
 \value{
 A data frame containing the combined and processed reference isoforms
@@ -20,6 +20,6 @@ combines them, and generates a comprehensive reference isoform dataset.
 }
 \examples{
 \dontrun{
-MakeReferenceIsoform("DataPathFile.txt", "ReferenceIsoformFinal.txt")
+MakeReferenceIsoform(SamplePath, "ReferenceIsoformFinal.txt")
 }
 }

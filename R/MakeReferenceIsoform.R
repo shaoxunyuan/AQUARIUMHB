@@ -3,8 +3,8 @@
 #' This function processes circRNA isoform data from multiple sources, 
 #' combines them, and generates a comprehensive reference isoform dataset.
 #' 
-#' @param datapathfile Path to the text file containing sample paths
-#' @param outputfile Path to the output file where results will be saved
+#' @param samplepath Path dataframe of sample paths
+#' @param outputfile Path of the output file where results will be saved
 #' 
 #' @return A data frame containing the combined and processed reference isoforms
 #' 
@@ -15,9 +15,9 @@
 #' 
 #' @examples
 #' \dontrun{
-#' MakeReferenceIsoform("DataPathFile.txt", "ReferenceIsoformFinal.txt")
+#' MakeReferenceIsoform(SamplePath, "ReferenceIsoformFinal.txt")
 #' }
-MakeReferenceIsoform <- function(datapathfile, outputfile) {
+MakeReferenceIsoform <- function(SamplePath, outputfile) {
   message("Starting reference isoform generation...")
   
   # Load external datasets
@@ -104,26 +104,27 @@ MakeReferenceIsoform <- function(datapathfile, outputfile) {
   message("Reading and processing input files...")
   
   # Read path file
-  DataFilePath <- data.table::fread(datapathfile, data.table = FALSE)
+  message("Numbers of records………………");print(nrow(SamplePath))
   
   stout.list.all.list <- list()
   
-  for (i in seq_along(DataFilePath$SamplePath)) {
+  for (i in seq_along(SamplePath$FullPath)) {
     message(sprintf(
       "Processing file %d of %d: %s", 
       i, 
-      nrow(DataFilePath), 
-      DataFilePath$SamplePath[i]
+      nrow(SamplePath), 
+      SamplePath$FullPath[i]
     ))
     
     # Build full path for stout.list
-    stout.list.path <- file.path(DataFilePath$SamplePath[i], "vis/stout.list")
+    stout.list.path <- file.path(SamplePath$FullPath[i], "vis/stout.list")
     
     # Read file (note: header=FALSE as per original code)
     stout.list <- data.table::fread(
       stout.list.path, 
       data.table = FALSE, 
-      header = FALSE
+      header = FALSE,
+	  fill = TRUE
     )
     
     # Set column names
@@ -149,6 +150,7 @@ MakeReferenceIsoform <- function(datapathfile, outputfile) {
   
   # Filter for full isoforms and remove duplicates
   stout.list.all <- stout.list.all[stout.list.all$isoform_state == "Full", ]
+  message("stout.list.all总行数");print(nrow(stout.list.all))
   stout.list.all <- dplyr::distinct(stout.list.all)
   
   # Generate isoform IDs
