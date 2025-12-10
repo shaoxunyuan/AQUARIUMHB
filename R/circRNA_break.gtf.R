@@ -6,19 +6,19 @@
 #' in the exon structure. The function attempts to complete these isoforms
 #' using reference data or genome annotation.
 #'
-#' @param inputpathfile Path to the DataPathFile.txt containing sample information.
-#' @param referencefile Path to the ReferenceIsoformFinal.txt containing reference isoform data.
+#' @param SamplePath Data of input, containing sample information, must have columns:	SampleName	FullPath (level to sample directory).
+#' @param ReferenceSet Referenceset data of all possible full-lenghth isoforms.
 #'
 #' @return Generates a circRNA_break.gtf file in the quantification directory for each sample.
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' circRNA_break.gtf(inputpathfile = "PRJNA429023/DataPathFile.txt", 
-#'                  referencefile = "ReferenceIsoformFinal.txt")
+#' circRNA_break.gtf(SamplePath = samplepath, 
+#'                  ReferenceSet = ReferenceSet)
 #' }
-circRNA_break.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt", 
-                            referencefile = "ReferenceIsoformFinal.txt") {
+circRNA_break.gtf <- function(SamplePath = samplepath, 
+                             ReferenceSet = ReferenceSet) {
 
     # Convert isoformID to exon structure string
     isoformID_to_exon = function(isoformID){
@@ -111,27 +111,30 @@ circRNA_break.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt",
     message("Loading annotation files...")
     loadAnnotationFiles()
     gtf_exontable = Homo_sapiens.GRCh38.94.chr.gtf_exontable
-    ReferenceSet <- data.table::fread(referencefile, data.table = FALSE)
+
+    # Read reference file
+    message("Reading reference isoform data...")
+    nrow(ReferenceSet)
     
-    # Read sample data paths
-    message("Reading sample data paths...")
-    datapath <- data.table::fread(inputpathfile, data.table = FALSE)
+	# Read data path file
+	message("Reading data path file...")
+	nrow(SamplePath)
 
     # Process each sample
-    for (i in 1:nrow(datapath)) {
-        SampleID <- datapath$SampleID[i]
-        message(paste0("Processing sample: ", SampleID))
+    for (i in 1:nrow(SamplePath)) {
+        SampleName <- SamplePath$SampleName[i]
+        message(paste0("Processing sample: ", SampleName))
         
         # Create quantification directory if not exists
-        dirquant <- paste0(datapath$SamplePath[i], "quant/")
+        dirquant <- paste0(SamplePath$FullPath[i], "quant/")
         if (!dir.exists(dirquant)) {
             message(paste0("Creating directory: ", dirquant))
             dir.create(dirquant, recursive = TRUE)
         }
 
         # Read visualization data
-        stout.list.path <- file.path(datapath$SamplePath[i], "vis/stout.list")
-        message(paste0("Reading stout.list for sample ", SampleID))
+        stout.list.path <- file.path(SamplePath$FullPath[i], "vis/stout.list")
+        message(paste0("Reading stout.list for sample ", SampleName))
         stout.list <- data.table::fread(stout.list.path, data.table = FALSE, sep = "\t", header = FALSE)
         colnames(stout.list) <- c("Image_ID", "bsj", "chr", "start", "end", "total_exp",
                                  "isoform_number", "isoform_exp", "isoform_length", 
@@ -154,7 +157,7 @@ circRNA_break.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt",
         for(index in 1:n_ref) {
             if (index %% 100 == 0 || index == n_ref) {
                 percent <- round(index / n_ref * 100, 1)
-                message(paste0("Sample ", SampleID, ": Processed ", index, "/", n_ref, 
+                message(paste0("Sample ", SampleName, ": Processed ", index, "/", n_ref, 
                               " reference break isoforms (", percent, "%)"))
             }
             onerow <- type_breakinRef[index, ]
@@ -213,7 +216,7 @@ circRNA_break.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt",
             for(index in 1:n_non_ref) {
                 if (index %% 100 == 0 || index == n_non_ref) {
                     percent <- round(index / n_non_ref * 100, 1)
-                    message(paste0("Sample ", SampleID, ": Processed ", index, "/", n_non_ref, 
+                    message(paste0("Sample ", SampleName, ": Processed ", index, "/", n_non_ref, 
                                   " non-reference break isoforms (", percent, "%)"))
                 }
                 onerow <- type_breakoutRef_gtf[index, ]
@@ -236,7 +239,7 @@ circRNA_break.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt",
         for(index in 1:n_isoforms) {
             if (index %% 100 == 0 || index == n_isoforms) {
                 percent <- round(index / n_isoforms * 100, 1)
-                message(paste0("Sample ", SampleID, ": Processed exon information for ", index, "/", n_isoforms, 
+                message(paste0("Sample ", SampleName, ": Processed exon information for ", index, "/", n_isoforms, 
                               " isoforms (", percent, "%)"))
             }
             onerow <- type_break.df[index, ]
@@ -270,7 +273,7 @@ circRNA_break.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt",
         message(paste0("Writing output to: ", output_file))
         write.table(type_break_gtf, file = output_file, sep = "\t", quote = FALSE, col.names = FALSE, append = FALSE, row.names = FALSE)
         
-        message(paste0("Completed processing for sample ", SampleID))
+        message(paste0("Completed processing for sample ", SampleName))
     }
     
     message("All samples processed successfully!")

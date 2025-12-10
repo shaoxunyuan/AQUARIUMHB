@@ -4,19 +4,19 @@
 #' to generate a GTF file containing exon information for circular RNAs 
 #' with 'Full' isoform state.
 #'
-#' @param inputpathfile Path to the DataPathFile.txt containing sample information.
-#' @param referencefile Path to the ReferenceIsoformFinal.txt containing reference isoform data.
+#' @param SamplePath Data of input, containing sample information, must have columns:	SampleName	FullPath (level to sample directory).
+#' @param ReferenceSet Referenceset data of all possible full-lenghth isoforms.
 #'
 #' @return Generates a circRNA_full.gtf file in the quantification directory for each sample.
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' circRNA_full.gtf(inputpathfile = "PRJNA429023/DataPathFile.txt", 
-#'                  referencefile = "ReferenceIsoformFinal.txt")
+#' circRNA_full.gtf(SamplePath = samplepath, 
+#'                  ReferenceSet = ReferenceSet)
 #' }
-circRNA_full.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt", 
-                            referencefile = "ReferenceIsoformFinal.txt") {
+circRNA_full.gtf <- function(SamplePath = samplepath, 
+                             ReferenceSet = ReferenceSet) {
   # Load required packages
   if (!requireNamespace("data.table", quietly = TRUE)) {
     stop("Package 'data.table' is required but not installed.")
@@ -27,33 +27,33 @@ circRNA_full.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt",
   
   # Read reference file
   message("Reading reference isoform data...")
-  ReferenceSet <- data.table::fread(referencefile, data.table = FALSE)
+  nrow(ReferenceSet)
   
   # Read data path file
   message("Reading data path file...")
-  datapath <- data.table::fread(inputpathfile, data.table = FALSE)
+  nrow(SamplePath)
   
   # Process each sample
-  for (i in 1:nrow(datapath)) {
-    SampleID <- datapath$SampleID[i]
-    message(paste0("Processing sample: ", SampleID))
+  for (i in 1:nrow(SamplePath)) {
+    SampleName <- SamplePath$SampleName[i]
+    message(paste0("Processing sample: ", SampleName))
     
-    dirquant <- paste0(datapath$SamplePath[i], "quant/")
+    dirquant <- paste0(SamplePath$FullPath[i], "quant/")
     if (!dir.exists(dirquant)) {
       message(paste0("Creating directory: ", dirquant))
       dir.create(dirquant, recursive = TRUE)
     }
     
     # Build path to stout.list file
-    stout.list.path <- file.path(datapath$SamplePath[i], "vis/stout.list")
+    stout.list.path <- file.path(SamplePath$FullPath[i], "vis/stout.list")
     
     # Check if stout.list file exists
     if (!file.exists(stout.list.path)) {
-      warning(paste0("stout.list file not found for sample ", SampleID, ". Skipping this sample."))
+      warning(paste0("stout.list file not found for sample ", SampleName, ". Skipping this sample."))
       next
     }
     
-    message(paste0("Reading stout.list for sample ", SampleID))
+    message(paste0("Reading stout.list for sample ", SampleName))
     stout.list <- data.table::fread(stout.list.path, data.table = FALSE, sep = "\t", header = FALSE)
     
     # Rename columns with unique names
@@ -68,7 +68,7 @@ circRNA_full.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt",
     
     # Check if any 'Full' isoforms found
     if (nrow(type_full) == 0) {
-      warning(paste0("No 'Full' isoforms found for sample ", SampleID))
+      warning(paste0("No 'Full' isoforms found for sample ", SampleName))
       next
     }
     
@@ -126,7 +126,7 @@ circRNA_full.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt",
     write.table(type_full.gtf, file = output_file, sep = "\t", quote = FALSE, 
                 col.names = FALSE, append = FALSE, row.names = FALSE)
     
-    message(paste0("Completed processing for sample ", SampleID))
+    message(paste0("Completed processing for sample ", SampleName))
   }
   
   message("All samples processed successfully!")

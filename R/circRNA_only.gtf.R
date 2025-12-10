@@ -4,19 +4,19 @@
 #' (stout.list) but exist in the CIRI report. These isoforms are classified as "only" isoforms
 #' and are processed using either reference data or genome annotation (GTF).
 #'
-#' @param inputpathfile Path to the DataPathFile.txt containing sample information.
-#' @param referencefile Path to the ReferenceIsoformFinal.txt containing reference isoform data.
+#' @param SamplePath Data of input, containing sample information, must have columns:	SampleName	FullPath (level to sample directory).
+#' @param ReferenceSet Referenceset data of all possible full-lenghth isoforms.
 #'
 #' @return Generates a circRNA_only.gtf file in the quantification directory for each sample.
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' circRNA_only.gtf(inputpathfile = "PRJNA429023/DataPathFile.txt", 
-#'                 referencefile = "ReferenceIsoformFinal.txt")
+#' circRNA_only.gtf(SamplePath = samplepath, 
+#'                  ReferenceSet = ReferenceSet)
 #' }
-circRNA_only.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt", 
-                            referencefile = "ReferenceIsoformFinal.txt") {
+circRNA_only.gtf <- function(SamplePath = samplepath, 
+                             ReferenceSet = ReferenceSet) {
   
   # Helper function: Supply missing exon information using GTF annotation
   only_supplyfrom_gtf <- function(bsj){
@@ -98,27 +98,30 @@ circRNA_only.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt",
   message("Loading annotation files...")
   loadAnnotationFiles()
   gtf_exontable <- Homo_sapiens.GRCh38.94.chr.gtf_exontable
-  ReferenceSet <- data.table::fread(referencefile, data.table = FALSE)
   
-  # Read sample data paths
-  message("Reading sample data paths...")
-  datapath <- data.table::fread(inputpathfile, data.table = FALSE)
+  # Read reference file
+  message("Reading reference isoform data...")
+  nrow(ReferenceSet)
+  
+  # Read data path file
+  message("Reading data path file...")
+  nrow(SamplePath)
 
   # Process each sample
-  for (i in 1:nrow(datapath)) {
-    SampleID <- datapath$SampleID[i]
-    message(paste0("Processing sample: ", SampleID))
+  for (i in 1:nrow(SamplePath)) {
+    SampleName <- SamplePath$SampleName[i]
+    message(paste0("Processing sample: ", SampleName))
     
     # Create quantification directory if not exists
-    dirquant <- paste0(datapath$SamplePath[i], "quant/")
+    dirquant <- paste0(SamplePath$FullPath[i], "quant/")
     if (!dir.exists(dirquant)) {
       message(paste0("Creating directory: ", dirquant))
       dir.create(dirquant, recursive = TRUE)
     }
 
     # Read visualization data
-    stout.list.path <- file.path(datapath$SamplePath[i], "vis/stout.list")
-    message(paste0("Reading stout.list for sample ", SampleID))
+    stout.list.path <- file.path(SamplePath$FullPath[i], "vis/stout.list")
+    message(paste0("Reading stout.list for sample ", SampleName))
     stout.list <- data.table::fread(stout.list.path, data.table = FALSE, sep = "\t", header = FALSE)
     colnames(stout.list) <- c("Image_ID", "bsj", "chr", "start", "end", "total_exp",
                              "isoform_number", "isoform_exp", "isoform_length", 
@@ -126,8 +129,8 @@ circRNA_only.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt",
     stout.list$chr <- gsub("chr", "", stout.list$chr)
     
     # Read CIRI report
-    ciri.report.path <- file.path(datapath$SamplePath[i], "full/ciri.report")
-    message(paste0("Reading CIRI report for sample ", SampleID))
+    ciri.report.path <- file.path(SamplePath$FullPath[i], "full/ciri.report")
+    message(paste0("Reading CIRI report for sample ", SampleName))
     ciri.report <- data.table::fread(ciri.report.path, data.table = FALSE, sep = "\t", header = TRUE)
 
     # Get different types of BSJs
@@ -151,7 +154,7 @@ circRNA_only.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt",
     for (index in 1:n_ref_bsj) {
       if (index %% 100 == 0 || index == n_ref_bsj) {
         percent <- round(index / n_ref_bsj * 100, 1)
-        message(paste0("Sample ", SampleID, ": Processed ", index, "/", n_ref_bsj, 
+        message(paste0("Sample ", SampleName, ": Processed ", index, "/", n_ref_bsj, 
                       " reference BSJs (", percent, "%)"))
       }
       
@@ -183,7 +186,7 @@ circRNA_only.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt",
       for (index in 1:n_non_ref_bsj) {
         if (index %% 100 == 0 || index == n_non_ref_bsj) {
           percent <- round(index / n_non_ref_bsj * 100, 1)
-          message(paste0("Sample ", SampleID, ": Processed ", index, "/", n_non_ref_bsj, 
+          message(paste0("Sample ", SampleName, ": Processed ", index, "/", n_non_ref_bsj, 
                         " non-reference BSJs (", percent, "%)"))
         }
         
@@ -216,7 +219,7 @@ circRNA_only.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt",
     for (index in 1:n_isoforms) {
       if (index %% 100 == 0 || index == n_isoforms) {
         percent <- round(index / n_isoforms * 100, 1)
-        message(paste0("Sample ", SampleID, ": Processed exon information for ", index, "/", n_isoforms, 
+        message(paste0("Sample ", SampleName, ": Processed exon information for ", index, "/", n_isoforms, 
                       " isoforms (", percent, "%)"))
       }
       
@@ -248,7 +251,7 @@ circRNA_only.gtf <- function(inputpathfile = "PRJNA429023/DataPathFile.txt",
     write.table(type_only_gtf, file = output_file, sep = "\t", quote = FALSE, 
                 col.names = FALSE, append = FALSE, row.names = FALSE)
     
-    message(paste0("Completed processing for sample ", SampleID))
+    message(paste0("Completed processing for sample ", SampleName))
   }
   
   message("All samples processed successfully!")

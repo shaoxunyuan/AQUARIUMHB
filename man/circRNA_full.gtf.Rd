@@ -4,15 +4,12 @@
 \alias{circRNA_full.gtf}
 \title{Generate circRNA Full GTF File}
 \usage{
-circRNA_full.gtf(
-  inputpathfile = "PRJNA429023/DataPathFile.txt",
-  referencefile = "ReferenceIsoformFinal.txt"
-)
+circRNA_full.gtf(samplepath = samplepath, ReferenceSet = ReferenceSet)
 }
 \arguments{
-\item{inputpathfile}{Path to the DataPathFile.txt containing sample information.}
+\item{samplepath}{Data of input, containing sample information, must have columns:    SampleName    FullPath (level to sample directory).}
 
-\item{referencefile}{Path to the ReferenceIsoformFinal.txt containing reference isoform data.}
+\item{ReferenceSet}{Referenceset data of all possible full-lenghth isoforms.}
 }
 \value{
 Generates a circRNA_full.gtf file in the quantification directory for each sample.
@@ -24,7 +21,7 @@ with 'Full' isoform state.
 }
 \examples{
 \dontrun{
-circRNA_full.gtf(inputpathfile = "PRJNA429023/DataPathFile.txt", 
-                 referencefile = "ReferenceIsoformFinal.txt")
+circRNA_full.gtf(samplepath = samplepath, 
+                 ReferenceSet = ReferenceSet)
 }
 }
