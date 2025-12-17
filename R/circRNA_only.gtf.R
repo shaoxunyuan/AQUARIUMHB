@@ -248,6 +248,7 @@ circRNA_only.gtf <- function(SamplePath = samplepath,
     # Write output to file
     output_file <- paste0(dirquant, "circRNA_only.gtf")
     message(paste0("Writing output to: ", output_file))
+    options(scipen = 999)
     write.table(type_only_gtf, file = output_file, sep = "\t", quote = FALSE, 
                 col.names = FALSE, append = FALSE, row.names = FALSE)
     
