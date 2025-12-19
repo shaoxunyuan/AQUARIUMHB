@@ -136,9 +136,6 @@ circRNA_only.gtf <- function(SamplePath = samplepath,
     # Get different types of BSJs
     message("Classifying circRNA isoforms...")
     type_only <- setdiff(ciri.report$circRNA_ID, stout.list$bsj)
-    if (length(type_only) == 0) {
-       stop("Note: 这个样本没有only转录本")  # 输出错误提示并终止函数
-    }
     type_onlyinRef <- intersect(ReferenceSet$bsj, type_only)
     type_onlyoutRef <- setdiff(type_only, ReferenceSet$bsj)
     
@@ -251,7 +248,6 @@ circRNA_only.gtf <- function(SamplePath = samplepath,
     # Write output to file
     output_file <- paste0(dirquant, "circRNA_only.gtf")
     message(paste0("Writing output to: ", output_file))
-    options(scipen = 999)
     write.table(type_only_gtf, file = output_file, sep = "\t", quote = FALSE, 
                 col.names = FALSE, append = FALSE, row.names = FALSE)
     
