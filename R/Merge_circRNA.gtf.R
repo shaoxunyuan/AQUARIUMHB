@@ -29,8 +29,12 @@ Merge_circRNA.gtf <- function(SamplePath, output_file = "final_circRNA.datatable
   # 收集所有样本路径下的 GTF 文件路径
   filelist <- character()
   for (i in 1:nrow(SamplePath)) {
-    files <- list.files(paste0(SamplePath$FullPath[i], "/quant/"), full.names = TRUE)
-    filelist <- append(filelist, files)
+	      files <- list.files(
+	      paste0(SamplePath$FullPath[i], "/quant/"),
+	      pattern = "^(circRNA_full|circRNA_break|circRNA_only)\\.gtf$",
+	      full.names = TRUE
+      )
+  filelist <- append(filelist, files)
   }
   
   # 逐个读取 GTF 文件并转换为 data.frame，存入列表
@@ -248,4 +252,5 @@ Merge_circRNA.gtf <- function(SamplePath, output_file = "final_circRNA.datatable
   
   # 将最终结果写入指定输出文件（制表符分隔，无行名和引号）
   write.table(results_df_with_ReferenceSource, file = output_file, row.names = FALSE, quote = FALSE, sep = "\t")
+
 }
