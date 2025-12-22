@@ -10,7 +10,7 @@
 #'
 #' @importFrom rtracklayer import
 #' @importFrom dplyr distinct arrange select
-#' @importFrom data.table fread
+#' @importFrom data.table fread setDT
 #' @import purrr
 #'
 #' @examples
@@ -254,3 +254,4 @@ Merge_circRNA.gtf <- function(SamplePath, output_file = "final_circRNA.datatable
   write.table(results_df_with_ReferenceSource, file = output_file, row.names = FALSE, quote = FALSE, sep = "\t")
 
 }
+
