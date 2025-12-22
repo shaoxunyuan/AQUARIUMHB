@@ -216,7 +216,7 @@ Merge_circRNA.gtf <- function(SamplePath, output_file = "final_circRNA.datatable
   results_df_with_ReferenceSource$ReferenceSource <- sapply(results_df_with_ReferenceSource$ReferenceSource, ReCombineReferenceSource)
 
   # 转换为 data.table 以便高效赋值
-  setDT(results_df_with_ReferenceSource)
+  data.table::setDT(results_df_with_ReferenceSource)
 
   # 初始化 ReferenceType 列
   results_df_with_ReferenceSource$ReferenceType = NA
@@ -254,4 +254,5 @@ Merge_circRNA.gtf <- function(SamplePath, output_file = "final_circRNA.datatable
   write.table(results_df_with_ReferenceSource, file = output_file, row.names = FALSE, quote = FALSE, sep = "\t")
 
 }
+
 
