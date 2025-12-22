@@ -123,6 +123,20 @@ circRNA_full.gtf <- function(SamplePath = samplepath,
     # Write output to file
     output_file <- paste0(dirquant, "circRNA_full.gtf")
     message(paste0("Writing output to: ", output_file))
+
+ type_full.gtf$attr <- gsub(
+   pattern = "([0-9.]+[eE][+-]?[0-9]+)",
+   replacement = "\\1", 
+   x = type_full.gtf$attr
+ )
+ type_full.gtf$attr <- sapply(type_full.gtf$attr, function(x) {
+   regmatches(x, gregexpr("([0-9.]+[eE][+-]?[0-9]+)", x)) <- 
+     lapply(regmatches(x, gregexpr("([0-9.]+[eE][+-]?[0-9]+)", x)), 
+            function(m) as.character(as.numeric(m)))
+   return(x)
+ })
+
+    
     options(scipen = 999)
     write.table(type_full.gtf, file = output_file, sep = "\t", quote = FALSE, 
                 col.names = FALSE, append = FALSE, row.names = FALSE)
