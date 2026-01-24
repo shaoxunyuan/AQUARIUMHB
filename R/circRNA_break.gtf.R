@@ -60,7 +60,34 @@ circRNA_break.gtf <- function(SamplePath = samplepath,
         exon_break_supply$exonEnd <- as.numeric(exon_break_supply$exonEnd)
         
         # Optimize exon structure
-        exon_break_supply <- SimRVSequences::combine_exons(exon_break_supply)
+		combine_exons_by_chrom <- function(chrom, start_stop_dat){
+		  ex_mat <- interval_union(Intervals(start_stop_dat))@.Dat
+		  adjacent_exons <- which((ex_mat[-1, 1] - ex_mat[-nrow(ex_mat), 2]) == 1)
+		  test_var <- length(adjacent_exons) > 0
+		  while (test_var) {
+		    ex_mat[adjacent_exons, 2] <- ex_mat[(adjacent_exons + rep(1, length(adjacent_exons))), 2]
+		    ex_mat <- interval_union(Intervals(ex_mat))@.Data
+		    adjacent_exons <- which((ex_mat[-1, 1] - ex_mat[-nrow(ex_mat), 2]) == 1)
+		    test_var <- length(adjacent_exons) > 0
+		  }
+		  ex_mat <- cbind(rep(chrom, nrow(ex_mat)), ex_mat)
+		  colnames(ex_mat) <- c('chrom', 'exonStart', 'exonEnd')
+		  return(ex_mat)
+		}
+		
+		combine_exons <- function(exon_data){
+		  if(any(!(c("chrom", "exonStart", "exonEnd") %in% colnames(exon_data)))){
+		    stop("exon_data does not include named columns: 'chrom', 'exonStart', and 'exonEnd'.")
+		  }
+		  exon_data <- exon_data[order(exon_data$chrom, exon_data$exonStart, exon_data$exonEnd), ]
+		  cexons <- do.call(rbind, lapply(unique(exon_data$chrom), function(x){
+		    combine_exons_by_chrom(chrom = x,
+		                           start_stop_dat = exon_data[exon_data$chrom == x, c("exonStart", "exonEnd")])
+		  }))
+		 return(as.data.frame(cexons))
+		}
+
+        exon_break_supply <- combine_exons(exon_break_supply)
         exon_break_supply$exonStart <- as.numeric(exon_break_supply$exonStart)
         exon_break_supply$exonEnd <- as.numeric(exon_break_supply$exonEnd)
         
@@ -279,4 +306,5 @@ circRNA_break.gtf <- function(SamplePath = samplepath,
     
     message("All samples processed successfully!")
 }
+
 
