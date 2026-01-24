@@ -77,7 +77,7 @@ circRNA_only.gtf <- function(SamplePath = samplepath,
       attr1 <- "."
       strand <- onerow$strand
       attr2 <- "."
-      attr <- paste0('bsj "', onerow$bsj, '"; ', 
+      attr_str <- paste0('bsj "', onerow$bsj, '"; ', 
                     'transcript_id "', onerow$isoformID, '"; ',
                     'isoform_state "', onerow$isoform_state, '"; ',
                     'ReferenceSource "', onerow$ReferenceSource, '"; ')
@@ -85,7 +85,7 @@ circRNA_only.gtf <- function(SamplePath = samplepath,
       # Create GTF entry
       gtfresults <- data.frame(chr = chr, source = "ciri", type = "exon", 
                               start = start, end = end, attr1 = ".", 
-                              strand = strand, attr2 = ".", attr = attr)
+                              strand = strand, attr2 = ".", attr = attr_str)
       gtf.list[[index]] <- gtfresults
     }
     
@@ -256,3 +256,4 @@ circRNA_only.gtf <- function(SamplePath = samplepath,
   
   message("All samples processed successfully!")
 }
+
