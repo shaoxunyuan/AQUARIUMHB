@@ -18,31 +18,44 @@
 circRNA_only.gtf <- function(SamplePath = samplepath, 
                              ReferenceSet = ReferenceSet) {
 
-combine_exons_by_chrom <- function(chrom, start_stop_dat){
-  ex_mat <- interval_union(Intervals(start_stop_dat))@.Dat
-  adjacent_exons <- which((ex_mat[-1, 1] - ex_mat[-nrow(ex_mat), 2]) == 1)
-  test_var <- length(adjacent_exons) > 0
-  while (test_var) {
-    ex_mat[adjacent_exons, 2] <- ex_mat[(adjacent_exons + rep(1, length(adjacent_exons))), 2]
-    ex_mat <- interval_union(Intervals(ex_mat))@.Data
-    adjacent_exons <- which((ex_mat[-1, 1] - ex_mat[-nrow(ex_mat), 2]) == 1)
-    test_var <- length(adjacent_exons) > 0
-  }
+combine_exons_by_chrom <- function(chrom, start_stop_dat) {
+  start_stop_dat$exonStart <- as.numeric(start_stop_dat$exonStart)
+  start_stop_dat$exonEnd <- as.numeric(start_stop_dat$exonEnd)
+  start_stop_dat <- start_stop_dat[!is.na(start_stop_dat$exonStart) & !is.na(start_stop_dat$exonEnd), ]
+  gr <- GRanges(
+    seqnames = chrom,
+    ranges = IRanges(
+      start = start_stop_dat$exonStart,
+      end = start_stop_dat$exonEnd
+    )
+  )
+  merged_gr <- GenomicRanges::reduce(gr, min.gapwidth = 1)
+  ex_mat <- as.matrix(data.frame(
+    exonStart = start(merged_gr),
+    exonEnd = end(merged_gr),
+    stringsAsFactors = FALSE
+  ))
   ex_mat <- cbind(rep(chrom, nrow(ex_mat)), ex_mat)
   colnames(ex_mat) <- c('chrom', 'exonStart', 'exonEnd')
   return(ex_mat)
 }
 
-combine_exons <- function(exon_data){
-  if(any(!(c("chrom", "exonStart", "exonEnd") %in% colnames(exon_data)))){
+combine_exons <- function(exon_data) {
+  required_cols <- c("chrom", "exonStart", "exonEnd")
+  if (any(!(required_cols %in% colnames(exon_data)))) {
     stop("exon_data does not include named columns: 'chrom', 'exonStart', and 'exonEnd'.")
   }
   exon_data <- exon_data[order(exon_data$chrom, exon_data$exonStart, exon_data$exonEnd), ]
-  cexons <- do.call(rbind, lapply(unique(exon_data$chrom), function(x){
-    combine_exons_by_chrom(chrom = x,
-                           start_stop_dat = exon_data[exon_data$chrom == x, c("exonStart", "exonEnd")])
+  cexons <- do.call(rbind, lapply(unique(exon_data$chrom), function(x) {
+    combine_exons_by_chrom(
+      chrom = x,
+      start_stop_dat = exon_data[exon_data$chrom == x, required_cols]
+    )
   }))
- return(as.data.frame(cexons))
+  cexons <- as.data.frame(cexons, stringsAsFactors = FALSE)
+  cexons$exonStart <- as.numeric(cexons$exonStart)
+  cexons$exonEnd <- as.numeric(cexons$exonEnd)
+  return(cexons)
 }
 
 
@@ -284,5 +297,6 @@ combine_exons <- function(exon_data){
   
   message("All samples processed successfully!")
 }
+
 
 
