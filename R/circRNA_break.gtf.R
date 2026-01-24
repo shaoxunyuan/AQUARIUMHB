@@ -96,11 +96,11 @@ circRNA_break.gtf <- function(SamplePath = samplepath,
             attr1 = "."
             strand = onerow$strand
             attr2 = "."
-            attr = paste0('bsj "',onerow$bsj,'"; ','transcript_id "',onerow$isoformID,'"; ',
+            attr_str = paste0('bsj "',onerow$bsj,'"; ','transcript_id "',onerow$isoformID,'"; ',
                           'isoform_state "',onerow$isoform_state,'"; ',
                           'ReferenceSource "',onerow$ReferenceSource,'"; ')
             gtfresults <- data.frame(chr=chr,source="ciri",type="exon",start=start,end=end,
-                                     attr1=".",strand=strand,attr2=".",attr=attr)
+                                     attr1=".",strand=strand,attr2=".",attr=attr_str)
             gtf.list[[index]] <- gtfresults
         }
         gtf <- do.call(rbind,gtf.list)
@@ -279,3 +279,4 @@ circRNA_break.gtf <- function(SamplePath = samplepath,
     
     message("All samples processed successfully!")
 }
+
