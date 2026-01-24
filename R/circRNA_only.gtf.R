@@ -17,7 +17,35 @@
 #' }
 circRNA_only.gtf <- function(SamplePath = samplepath, 
                              ReferenceSet = ReferenceSet) {
-  
+
+combine_exons_by_chrom <- function(chrom, start_stop_dat){
+  ex_mat <- interval_union(Intervals(start_stop_dat))@.Dat
+  adjacent_exons <- which((ex_mat[-1, 1] - ex_mat[-nrow(ex_mat), 2]) == 1)
+  test_var <- length(adjacent_exons) > 0
+  while (test_var) {
+    ex_mat[adjacent_exons, 2] <- ex_mat[(adjacent_exons + rep(1, length(adjacent_exons))), 2]
+    ex_mat <- interval_union(Intervals(ex_mat))@.Data
+    adjacent_exons <- which((ex_mat[-1, 1] - ex_mat[-nrow(ex_mat), 2]) == 1)
+    test_var <- length(adjacent_exons) > 0
+  }
+  ex_mat <- cbind(rep(chrom, nrow(ex_mat)), ex_mat)
+  colnames(ex_mat) <- c('chrom', 'exonStart', 'exonEnd')
+  return(ex_mat)
+}
+
+combine_exons <- function(exon_data){
+  if(any(!(c("chrom", "exonStart", "exonEnd") %in% colnames(exon_data)))){
+    stop("exon_data does not include named columns: 'chrom', 'exonStart', and 'exonEnd'.")
+  }
+  exon_data <- exon_data[order(exon_data$chrom, exon_data$exonStart, exon_data$exonEnd), ]
+  cexons <- do.call(rbind, lapply(unique(exon_data$chrom), function(x){
+    combine_exons_by_chrom(chrom = x,
+                           start_stop_dat = exon_data[exon_data$chrom == x, c("exonStart", "exonEnd")])
+  }))
+ return(as.data.frame(cexons))
+}
+
+
   # Helper function: Supply missing exon information using GTF annotation
   only_supplyfrom_gtf <- function(bsj){
     # Extract chromosome, start, and end positions from BSJ
@@ -34,7 +62,7 @@ circRNA_only.gtf <- function(SamplePath = samplepath,
       # Format exon information
       supply_exon <- supply_gtf_exon[, c("seqnames", "start", "end")]
       names(supply_exon) <- c("chrom", "exonStart", "exonEnd")
-      supply_exon <- SimRVSequences::combine_exons(supply_exon)
+      supply_exon <- combine_exons(supply_exon)
       supply_exon <- as.data.frame(supply_exon)
       
       # Generate isoform ID
@@ -256,4 +284,5 @@ circRNA_only.gtf <- function(SamplePath = samplepath,
   
   message("All samples processed successfully!")
 }
+
 
