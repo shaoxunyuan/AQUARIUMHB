@@ -1,324 +1,161 @@
-#' Generate GTF File for circRNA Break Isoforms
+#' Generate GTF File for circRNA Break Isoforms (Optimized & Secure)
 #'
-#' This function processes break isoforms of circRNA from visualization data
-#' and generates GTF files containing exon information. Break isoforms are
-#' those with internal information partially missing, represented by "0-0"
-#' in the exon structure. The function attempts to complete these isoforms
-#' using reference data or genome annotation.
+#' @param SamplePath Data of input, containing sample information, must have columns: SampleName, FullPath.
+#' @param ReferenceSet Referenceset data of all possible full-length isoforms.
 #'
-#' @param SamplePath Data of input, containing sample information, must have columns:	SampleName	FullPath (level to sample directory).
-#' @param ReferenceSet Referenceset data of all possible full-lenghth isoforms.
-#'
-#' @return Generates a circRNA_break.gtf file in the quantification directory for each sample.
+#' @import data.table
+#' @import GenomicRanges
 #' @export
-#'
-#' @examples
-#' \dontrun{
-#' circRNA_break.gtf(SamplePath = samplepath, 
-#'                  ReferenceSet = ReferenceSet)
-#' }
-circRNA_break.gtf <- function(SamplePath = samplepath, 
-                             ReferenceSet = ReferenceSet) {
-
-    # Convert isoformID to exon structure string
-    isoformID_to_exon = function(isoformID){
-        exon_start <- strsplit(strsplit(isoformID, "[|]")[[1]][2],split = ",")[[1]]
-        exon_end <- strsplit(strsplit(isoformID, "[|]")[[1]][3],split = ",")[[1]]
-        exon <- paste(paste(exon_start, exon_end, sep = "-"),collapse = ",")
-        exon
-    }
-    
-    # Supply missing exon information for break isoform using GTF annotation
-    break_supplyfrom_gtf <- function(onerow,isoform_state="breakinRef_gtf"){
-                
-        # Parse existing exon structure
-        isoform_cirexon_ciri <- unlist(strsplit(onerow$isoform_cirexon, ","))
-        exon <- strsplit(unlist(strsplit(isoform_cirexon_ciri, ",")), split = "-")
-        exon <- data.frame(t(data.frame(exon)));
-        rownames(exon) <- NULL
-        colnames(exon) <- c("exonStart", "exonEnd")
-        exon$chrom <- onerow$chr
-        exon <- exon[, c("chrom", "exonStart", "exonEnd")];
-        
-        # Identify break point
-        index0 <- which(isoform_cirexon_ciri == "0-0")
-        isoform_cirexon_ciri <- strsplit(isoform_cirexon_ciri, '-')
-        before0 <- as.integer(isoform_cirexon_ciri[[index0 - 1]][2]);
-        after0 <- as.integer(isoform_cirexon_ciri[[index0 + 1]][1]);
-        
-        # Retrieve supplementary exons from GTF annotation
-        supply_exon <- gtf_exontable[gtf_exontable$seqnames == onerow$chr & 
-                                     gtf_exontable$start >= before0 & 
-                                     gtf_exontable$end <= after0, c("seqnames", "start", "end")]
-        supply_exon <- distinct(supply_exon)
-        names(supply_exon) <- c("chrom", "exonStart", "exonEnd")
-        
-        # Combine existing and supplementary exons
-        exon_break_supply <- rbind(exon, supply_exon)
-        exon_break_supply$exonStart <- as.numeric(exon_break_supply$exonStart)
-        exon_break_supply <- exon_break_supply[!exon_break_supply$exonStart == 0, ]
-        exon_break_supply$exonEnd <- as.numeric(exon_break_supply$exonEnd)
-        
-        # Optimize exon structure
-        combine_exons_by_chrom <- function(chrom, start_stop_dat) {
-          start_stop_dat$exonStart <- as.numeric(start_stop_dat$exonStart)
-          start_stop_dat$exonEnd <- as.numeric(start_stop_dat$exonEnd)
-          start_stop_dat <- start_stop_dat[!is.na(start_stop_dat$exonStart) & !is.na(start_stop_dat$exonEnd), ]
-          gr <- GRanges(
-            seqnames = chrom,
-            ranges = IRanges(
-              start = start_stop_dat$exonStart,
-              end = start_stop_dat$exonEnd
-            )
-          )
-          merged_gr <- GenomicRanges::reduce(gr, min.gapwidth = 1)
-          ex_mat <- as.matrix(data.frame(
-            exonStart = start(merged_gr),
-            exonEnd = end(merged_gr),
-            stringsAsFactors = FALSE
-          ))
-          ex_mat <- cbind(rep(chrom, nrow(ex_mat)), ex_mat)
-          colnames(ex_mat) <- c('chrom', 'exonStart', 'exonEnd')
-          return(ex_mat)
-        }
-
-        combine_exons <- function(exon_data) {
-          required_cols <- c("chrom", "exonStart", "exonEnd")
-          if (any(!(required_cols %in% colnames(exon_data)))) {
-            stop("exon_data does not include named columns: 'chrom', 'exonStart', and 'exonEnd'.")
-          }
-          exon_data <- exon_data[order(exon_data$chrom, exon_data$exonStart, exon_data$exonEnd), ]
-          cexons <- do.call(rbind, lapply(unique(exon_data$chrom), function(x) {
-            combine_exons_by_chrom(
-              chrom = x,
-              start_stop_dat = exon_data[exon_data$chrom == x, required_cols]
-            )
-          }))
-          cexons <- as.data.frame(cexons, stringsAsFactors = FALSE)
-          cexons$exonStart <- as.numeric(cexons$exonStart)
-          cexons$exonEnd <- as.numeric(cexons$exonEnd)
-          return(cexons)
-        }
-
-        exon_break_supply <- combine_exons(exon_break_supply)
-        exon_break_supply$exonStart <- as.numeric(exon_break_supply$exonStart)
-        exon_break_supply$exonEnd <- as.numeric(exon_break_supply$exonEnd)
-        
-        # Generate new isoformID and metadata
-        exonstart <- paste(exon_break_supply$exonStart,collapse = ",");
-        exonend <- paste(exon_break_supply$exonEnd,collapse = ",");
-        chr=onerow$chr;start=onerow$start;end=onerow$end;strand=onerow$strand
-        len=sum(as.numeric(exon_break_supply$exonEnd)-as.numeric(exon_break_supply$exonStart)+1)  
-        BSJ_ID=paste0("chr",onerow$chr,"|",onerow$start,"|",onerow$end,"|",onerow$strand)
-        exon_start=exonstart
-        exon_end=exonend
-        isoformID <- paste0("chr",chr,"|",exonstart,"|",exonend,"|",strand);
-        chr_isoform_cirexon=paste0(onerow$chr,"@",onerow$isoform_cirexon);
-        
-        # Return results
-        results <- data.frame(chr=chr,start=start,end=end,strand=strand,
-                              bsj=onerow$bsj,isoformID=isoformID,
-                              isoform_state=isoform_state,ReferenceSource="gtf")
-        return(results)
-    }
-    
-    # Convert exon table to GTF format
-    exontable_to_gtf <- function(exon_df){
-        message("Converting exon table to GTF format...")
-        gtf.list <- list()
-        for(index in 1:nrow(exon_df)){
-            onerow <- exon_df[index,]
-            chr = onerow$chr
-            ciri = "ciri"
-            type = "exon" 
-            start = onerow$start
-            end = onerow$end
-            attr1 = "."
-            strand = onerow$strand
-            attr2 = "."
-            attr_str = paste0('bsj "',onerow$bsj,'"; ','transcript_id "',onerow$isoformID,'"; ',
-                          'isoform_state "',onerow$isoform_state,'"; ',
-                          'ReferenceSource "',onerow$ReferenceSource,'"; ')
-            gtfresults <- data.frame(chr=chr,source="ciri",type="exon",start=start,end=end,
-                                     attr1=".",strand=strand,attr2=".",attr=attr_str)
-            gtf.list[[index]] <- gtfresults
-        }
-        gtf <- do.call(rbind,gtf.list)
-        gtf                                           
-    }
-    
-    # Load required annotation files
-    message("Loading annotation files...")
+circRNA_break.gtf <- function(SamplePath, ReferenceSet) {
+  
+  # 防止科学计数法输出 (针对整个 R 环境 session)
+  old_scipen <- options(scipen = 999)$scipen
+  on.exit(options(scipen = old_scipen)) # 函数结束时自动恢复原始设置
+  
+  message("Loading annotation files and indexing...")
+  if (!exists("Homo_sapiens.GRCh38.94.chr.gtf_exontable")) {
     loadAnnotationFiles()
-    gtf_exontable = Homo_sapiens.GRCh38.94.chr.gtf_exontable
+  }
+  
+  # 转换为 data.table 并建立索引提高检索速度
+  gtf_exontable <- as.data.table(Homo_sapiens.GRCh38.94.chr.gtf_exontable)
+  gtf_gr <- GRanges(
+    seqnames = gtf_exontable$seqnames,
+    ranges = IRanges(start = gtf_exontable$start, end = gtf_exontable$end)
+  )
 
-    # Read reference file
-    message("Reading reference isoform data...")
-    nrow(ReferenceSet)
+  # 内部函数：补全 Break 异构体 (优化区间匹配)
+  break_supplyfrom_gtf <- function(onerow, gtf_gr, isoform_state = "breakinRef_gtf") {
+    parts <- unlist(strsplit(onerow$isoform_cirexon, ","))
+    idx0 <- which(parts == "0-0")
     
-	# Read data path file
-	message("Reading data path file...")
-	nrow(SamplePath)
+    before0 <- as.integer(strsplit(parts[idx0 - 1], "-")[[1]][2])
+    after0 <- as.integer(strsplit(parts[idx0 + 1], "-")[[1]][1])
+    
+    # 极速区间重叠查找
+    query_gr <- GRanges(seqnames = onerow$chr, ranges = IRanges(start = before0, end = after0))
+    hits <- findOverlaps(gtf_gr, query_gr, type = "within")
+    
+    # 构建当前已有外显子表
+    existing_exons <- data.table(
+      chrom = onerow$chr,
+      start = as.numeric(sapply(strsplit(parts[parts != "0-0"], "-"), `[`, 1)),
+      end = as.numeric(sapply(strsplit(parts[parts != "0-0"], "-"), `[`, 2))
+    )
+    
+    supply_exons <- as.data.table(gtf_gr[queryHits(hits)])[, .(chrom = as.character(seqnames), start, end)]
+    
+    # 合并、排序并使用 GenomicRanges::reduce 自动处理重叠和相邻区间
+    combined_gr <- reduce(GRanges(c(existing_exons$chrom, supply_exons$chrom),
+                                  IRanges(c(existing_exons$start, supply_exons$start),
+                                          c(existing_exons$end, supply_exons$end))))
+    final_df <- as.data.frame(combined_gr)
+    
+    exonstart <- paste(final_df$start, collapse = ",")
+    exonend <- paste(final_df$end, collapse = ",")
+    
+    return(data.frame(
+      chr=onerow$chr, start=onerow$start, end=onerow$end, strand=onerow$strand,
+      bsj=onerow$bsj, 
+      isoformID=paste0("chr", onerow$chr, "|", exonstart, "|", exonend, "|", onerow$strand),
+      isoform_state=isoform_state, ReferenceSource="gtf", stringsAsFactors = FALSE
+    ))
+  }
 
-    # Process each sample
-    for (i in 1:nrow(SamplePath)) {
-        SampleName <- SamplePath$SampleName[i]
-        message(paste0("Processing sample: ", SampleName))
+  # 处理样本
+  SamplePath <- as.data.table(SamplePath)
+  ReferenceSet <- as.data.table(ReferenceSet)
+
+  for (i in 1:nrow(SamplePath)) {
+    SampleName <- SamplePath$SampleName[i]
+    dirquant <- paste0(SamplePath$FullPath[i], "/quant/")
+    if (!dir.exists(dirquant)) dir.create(dirquant, recursive = TRUE)
+    
+    stout_path <- file.path(SamplePath$FullPath[i], "vis/stout.list")
+    if (!file.exists(stout_path)) next
+    
+    message(paste0("Processing sample: ", SampleName))
+    stout.list <- fread(stout_path, header = FALSE)
+    setnames(stout.list, c("Image_ID", "bsj", "chr", "start", "end", "total_exp",
+                           "isoform_number", "isoform_exp", "isoform_length", 
+                           "isoform_state", "strand", "gene_id", "isoform_cirexon"))
+    
+    type_break <- stout.list[isoform_state == "Break"]
+    if(nrow(type_break) == 0) next
+    
+    # 分类处理
+    ref_bsjs <- unique(ReferenceSet$bsj)
+    type_breakinRef <- type_break[bsj %in% ref_bsjs]
+    type_breakoutRef <- type_break[!(bsj %in% ref_bsjs)]
+    
+    res_list <- list()
+    
+    # 1. 处理在参考集中的 (使用正则向量化匹配思路)
+    if (nrow(type_breakinRef) > 0) {
+      for (j in 1:nrow(type_breakinRef)) {
+        row_curr <- type_breakinRef[j, ]
+        parts <- unlist(strsplit(row_curr$isoform_cirexon, ","))
+        idx0 <- which(parts == "0-0")
+        pre <- paste(parts[1:(idx0-1)], collapse=",")
+        post <- paste(parts[(idx0+1):length(parts)], collapse=",")
         
-        # Create quantification directory if not exists
-        dirquant <- paste0(SamplePath$FullPath[i], "quant/")
-        if (!dir.exists(dirquant)) {
-            message(paste0("Creating directory: ", dirquant))
-            dir.create(dirquant, recursive = TRUE)
-        }
-
-        # Read visualization data
-        stout.list.path <- file.path(SamplePath$FullPath[i], "vis/stout.list")
-        message(paste0("Reading stout.list for sample ", SampleName))
-        stout.list <- data.table::fread(stout.list.path, data.table = FALSE, sep = "\t", header = FALSE)
-        colnames(stout.list) <- c("Image_ID", "bsj", "chr", "start", "end", "total_exp",
-                                 "isoform_number", "isoform_exp", "isoform_length", 
-                                 "isoform_state", "strand", "gene_id", "isoform_cirexon") 
+        ref_subset <- ReferenceSet[bsj == row_curr$bsj]
+        # 匹配逻辑：匹配开头和结尾
+        match_vec <- grepl(paste0("^", pre), ref_subset$isoformID) & grepl(paste0(post, "$"), ref_subset$isoformID)
         
-        # Filter break isoforms
-        message("Filtering break isoforms...")
-        type_break <- stout.list[stout.list$isoform_state == "Break", ]
-
-        # Separate break isoforms into those in reference and those not
-        message("Separating break isoforms into reference and non-reference groups...")
-        type_breakinRef <- type_break[type_break$bsj %in% intersect(type_break$bsj, ReferenceSet$bsj), ]
-        ReferenceSet_breakinRef <- ReferenceSet[ReferenceSet$bsj %in% type_breakinRef$bsj, ]
-        type_breakoutRef_gtf <- type_break[type_break$bsj %in% setdiff(type_break$bsj, ReferenceSet$bsj), ]
-
-        # Process break isoforms in reference (show progress every 100 items)
-        message("Processing break isoforms in reference set...")
-        type_breakinRef.list <- list()
-        n_ref <- nrow(type_breakinRef)
-        for(index in 1:n_ref) {
-            if (index %% 100 == 0 || index == n_ref) {
-                percent <- round(index / n_ref * 100, 1)
-                message(paste0("Sample ", SampleName, ": Processed ", index, "/", n_ref, 
-                              " reference break isoforms (", percent, "%)"))
-            }
-            onerow <- type_breakinRef[index, ]
-            isoform_cirexon_ciri <- unlist(strsplit(onerow$isoform_cirexon, ","))
-            break_index <- which(isoform_cirexon_ciri == "0-0")
-            exon_before_break <- paste(isoform_cirexon_ciri[c(1:(break_index - 1))], collapse = ",")
-            exon_after_break <- paste(isoform_cirexon_ciri[c(break_index + 1):length(isoform_cirexon_ciri)], collapse = ",")
-            
-            # Find matching reference isoforms
-            ReferenceSet_bsj <- ReferenceSet_breakinRef[ReferenceSet_breakinRef$bsj == onerow$bsj, ]
-            ReferenceSet_bsj <- ReferenceSet_bsj[order(ReferenceSet_bsj$exon_total_length, decreasing = TRUE), ]
-            select_isoform_for_bsj <- data.frame()
-          
-            for(isoformindex in 1:nrow(ReferenceSet_bsj)) {
-                select_referece <- ReferenceSet_bsj[isoformindex, ]
-                select_referece$chr_isoform_cirexon <- paste0(onerow$chr, "@", onerow$isoform_cirexon)
-                
-                # Get exon structure from reference isoform
-                supply_exon <- isoformID_to_exon(select_referece$isoformID)
-                
-                # Check if reference exon structure matches before and after break
-                is_subset_before <- grepl(paste0("^", exon_before_break), supply_exon, perl = TRUE)  
-                is_subset_after <- grepl(paste0(exon_after_break, "$"), supply_exon, perl = TRUE) 
-                
-                if (is_subset_before & is_subset_after) {
-                    select_isoform_for_bsj <- rbind(select_isoform_for_bsj, select_referece)
-                }
-            }
-
-            # Select best matching reference isoform or use GTF annotation
-            if(nrow(select_isoform_for_bsj) > 0) {
-                select_isoform_for_bsj$isoform_state <- "breakinRef_ref"
-                
-                # Prioritize Full/Blood isoforms, then longest isoform
-                if(length(grep("Full|Blood", select_isoform_for_bsj$ReferenceSource)) > 0) {
-                    select_isoform_for_bsj <- select_isoform_for_bsj[grep("Full|Blood", select_isoform_for_bsj$ReferenceSource), ] 
-                    select_isoform_for_bsj <- select_isoform_for_bsj[which.max(select_isoform_for_bsj$exon_total_length), ]
-                } else {
-                    select_isoform_for_bsj <- select_isoform_for_bsj[which.max(select_isoform_for_bsj$exon_total_length), ]
-                }
-                select_isoform_for_bsj <- select_isoform_for_bsj[, c("chr", "start", "end", "strand", "bsj", "isoformID",
-                                                                       "isoform_state", "ReferenceSource")]
-            } else {
-                select_isoform_for_bsj <- break_supplyfrom_gtf(onerow, "breakinRef_gtf")
-            }
-            type_breakinRef.list[[index]] <- select_isoform_for_bsj
-        }
-
-        type_breakinRef.df <- do.call(rbind, type_breakinRef.list)
-
-        # Process break isoforms not in reference using GTF annotation (show progress every 100 items)
-        message("Processing break isoforms not in reference set...")
-        n_non_ref <- nrow(type_breakoutRef_gtf)
-        if(n_non_ref > 0) {
-            type_breakoutRef.list <- list()
-            for(index in 1:n_non_ref) {
-                if (index %% 100 == 0 || index == n_non_ref) {
-                    percent <- round(index / n_non_ref * 100, 1)
-                    message(paste0("Sample ", SampleName, ": Processed ", index, "/", n_non_ref, 
-                                  " non-reference break isoforms (", percent, "%)"))
-                }
-                onerow <- type_breakoutRef_gtf[index, ]
-                type_breakoutRef.list[[index]] <- break_supplyfrom_gtf(onerow, "breakoutRef_gtf")
-            }
-            type_breakoutRef.df <- do.call(rbind, type_breakoutRef.list)
+        if (any(match_vec)) {
+          best <- ref_subset[match_vec][which.max(exon_total_length)]
+          res_list[[length(res_list)+1]] <- data.frame(
+            chr=row_curr$chr, start=row_curr$start, end=row_curr$end, strand=row_curr$strand,
+            bsj=row_curr$bsj, isoformID=best$isoformID, 
+            isoform_state="breakinRef_ref", ReferenceSource=best$ReferenceSource
+          )
         } else {
-            message("No non-reference break isoforms found.")
-            type_breakoutRef.df <- data.frame()
+          res_list[[length(res_list)+1]] <- break_supplyfrom_gtf(row_curr, gtf_gr, "breakinRef_gtf")
         }
-
-        # Combine results
-        message("Combining processed break isoforms...")
-        type_break.df <- rbind(type_breakinRef.df, type_breakoutRef.df)
-
-        # Process exon information from isoformID
-        message("Processing exon information from isoformID...")
-        type_break_exon.list <- list()
-        n_isoforms <- nrow(type_break.df)
-        for(index in 1:n_isoforms) {
-            if (index %% 100 == 0 || index == n_isoforms) {
-                percent <- round(index / n_isoforms * 100, 1)
-                message(paste0("Sample ", SampleName, ": Processed exon information for ", index, "/", n_isoforms, 
-                              " isoforms (", percent, "%)"))
-            }
-            onerow <- type_break.df[index, ]
-            exon_start <- strsplit(onerow$isoformID, split = "[|]")[[1]][2]
-            exon_end <- strsplit(onerow$isoformID, split = "[|]")[[1]][3]
-            exon_start <- unlist(strsplit(exon_start, split = ","))
-            exon_end <- unlist(strsplit(exon_end, split = ","))
-            
-            exon <- data.frame(start = exon_start, end = exon_end) # Exon composition data frame
-            exon <- exon[order(exon$start, decreasing = FALSE), ]
-            
-            multirow <- onerow[rep(1, nrow(exon)), ]
-            multirow$start <- exon$start
-            multirow$end <- exon$end
-            multirow$start <- as.numeric(multirow$start)
-            multirow$end <- as.numeric(multirow$end)
-            
-            type_break_exon.list[[index]] <- multirow
-        }
-
-        type_break_exon <- do.call(rbind, type_break_exon.list)
-        rownames(type_break_exon) <- NULL
-
-        # Generate GTF format
-        message("Generating GTF format...")
-        type_break_gtf <- exontable_to_gtf(type_break_exon)
-        type_break_gtf$chr = gsub("chr","",type_break_gtf$chr)
-
-        # Write output to file
-        output_file <- paste0(dirquant, "circRNA_break.gtf")
-        message(paste0("Writing output to: ", output_file))
-        options(scipen = 999)
-        write.table(type_break_gtf, file = output_file, sep = "\t", quote = FALSE, col.names = FALSE, append = FALSE, row.names = FALSE)
-        
-        message(paste0("Completed processing for sample ", SampleName))
+      }
     }
     
-    message("All samples processed successfully!")
+    # 2. 处理不在参考集中的
+    if (nrow(type_breakoutRef) > 0) {
+      out_res <- lapply(1:nrow(type_breakoutRef), function(k) break_supplyfrom_gtf(type_breakoutRef[k,], gtf_gr, "breakoutRef_gtf"))
+      res_list <- c(res_list, out_res)
+    }
+    
+    # 汇总结果并向量化生成 GTF 结构
+    all_processed <- rbindlist(res_list)
+    
+    # 向量化展开所有外显子
+    # 第一步：把 isoformID 分解为开始列和结束列
+    all_processed[, `:=`(starts_str = tstrsplit(isoformID, "\\|")[[2]], 
+                         ends_str = tstrsplit(isoformID, "\\|")[[3]])]
+    
+    # 第二步：展开逗号分隔符 (极速向量化)
+    gtf_final <- all_processed[, .(
+      start = unlist(strsplit(as.character(starts_str), ",")),
+      end = unlist(strsplit(as.character(ends_str), ","))
+    ), by = .(chr, bsj, isoformID, isoform_state, ReferenceSource, strand)]
+    
+    # 构造 GTF 格式列
+    gtf_table <- data.table(
+      V1 = gsub("chr", "", gtf_final$chr),
+      V2 = "ciri",
+      V3 = "exon",
+      V4 = gtf_final$start,
+      V5 = gtf_final$end,
+      V6 = ".",
+      V7 = gtf_final$strand,
+      V8 = ".",
+      V9 = paste0('bsj "', gtf_final$bsj, '"; ',
+                  'transcript_id "', gtf_final$isoformID, '"; ',
+                  'isoform_state "', gtf_final$isoform_state, '"; ',
+                  'ReferenceSource "', gtf_final$ReferenceSource, '";')
+    )
+    
+    # 输出文件
+    output_file <- paste0(dirquant, "circRNA_break.gtf")
+    fwrite(gtf_table, file = output_file, sep = "\t", quote = FALSE, col.names = FALSE)
+  }
+  
+  message("All samples processed successfully!")
 }
-
-
-

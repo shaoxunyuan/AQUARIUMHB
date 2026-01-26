@@ -1,297 +1,171 @@
-#' Generate GTF File for circRNA Only Isoforms
+#' Generate GTF File for circRNA Only Isoforms (Optimized)
 #'
-#' This function processes circRNA isoforms that are not present in the visualization data
-#' (stout.list) but exist in the CIRI report. These isoforms are classified as "only" isoforms
-#' and are processed using either reference data or genome annotation (GTF).
+#' @param SamplePath Data of input, containing sample information, must have columns: SampleName, FullPath.
+#' @param ReferenceSet Referenceset data of all possible full-length isoforms.
 #'
-#' @param SamplePath Data of input, containing sample information, must have columns:	SampleName	FullPath (level to sample directory).
-#' @param ReferenceSet Referenceset data of all possible full-lenghth isoforms.
-#'
-#' @return Generates a circRNA_only.gtf file in the quantification directory for each sample.
+#' @import data.table
+#' @import GenomicRanges
 #' @export
-#'
-#' @examples
-#' \dontrun{
-#' circRNA_only.gtf(SamplePath = samplepath, 
-#'                  ReferenceSet = ReferenceSet)
-#' }
-circRNA_only.gtf <- function(SamplePath = samplepath, 
-                             ReferenceSet = ReferenceSet) {
-
-  combine_exons_by_chrom <- function(chrom, start_stop_dat) {
-    start_stop_dat$exonStart <- as.numeric(start_stop_dat$exonStart)
-    start_stop_dat$exonEnd <- as.numeric(start_stop_dat$exonEnd)
-    start_stop_dat <- start_stop_dat[!is.na(start_stop_dat$exonStart) & !is.na(start_stop_dat$exonEnd), ]
-    gr <- GRanges(
-      seqnames = chrom,
-      ranges = IRanges(
-        start = start_stop_dat$exonStart,
-        end = start_stop_dat$exonEnd
-      )
-    )
-    merged_gr <- GenomicRanges::reduce(gr, min.gapwidth = 1)
-    ex_mat <- as.matrix(data.frame(
-      exonStart = start(merged_gr),
-      exonEnd = end(merged_gr),
-      stringsAsFactors = FALSE
-    ))
-    ex_mat <- cbind(rep(chrom, nrow(ex_mat)), ex_mat)
-    colnames(ex_mat) <- c('chrom', 'exonStart', 'exonEnd')
-    return(ex_mat)
+circRNA_only.gtf <- function(SamplePath, ReferenceSet) {
+  
+  # 设置科学计数法惩罚，并在函数退出时恢复
+  old_scipen <- options(scipen = 999)$scipen
+  on.exit(options(scipen = old_scipen))
+  
+  # 1. 预加载与预处理注释文件
+  message("Loading annotation files and indexing...")
+  if (!exists("Homo_sapiens.GRCh38.94.chr.gtf_exontable")) {
+    loadAnnotationFiles()
   }
+  
+  # 转换为 data.table 提升查询速度
+  gtf_exontable <- as.data.table(Homo_sapiens.GRCh38.94.chr.gtf_exontable)
+  # 构建 GRanges 对象用于极速区间 overlap 计算
+  gtf_gr <- GRanges(
+    seqnames = gtf_exontable$seqnames,
+    ranges = IRanges(start = gtf_exontable$start, end = gtf_exontable$end)
+  )
 
-  combine_exons <- function(exon_data) {
-    required_cols <- c("chrom", "exonStart", "exonEnd")
-    if (any(!(required_cols %in% colnames(exon_data)))) {
-      stop("exon_data does not include named columns: 'chrom', 'exonStart', and 'exonEnd'.")
-    }
-    exon_data <- exon_data[order(exon_data$chrom, exon_data$exonStart, exon_data$exonEnd), ]
-    cexons <- do.call(rbind, lapply(unique(exon_data$chrom), function(x) {
-      combine_exons_by_chrom(
-        chrom = x,
-        start_stop_dat = exon_data[exon_data$chrom == x, required_cols]
-      )
-    }))
-    cexons <- as.data.frame(cexons, stringsAsFactors = FALSE)
-    cexons$exonStart <- as.numeric(cexons$exonStart)
-    cexons$exonEnd <- as.numeric(cexons$exonEnd)
-    return(cexons)
-  }
-
-
-  # Helper function: Supply missing exon information using GTF annotation
-  only_supplyfrom_gtf <- function(bsj){
-    # Extract chromosome, start, and end positions from BSJ
-    chr <- unlist(strsplit(bsj, split = "[:|]"))[1]
-    start <- as.numeric(unlist(strsplit(bsj, split = "[:|]"))[2])
-    end <- as.numeric(unlist(strsplit(bsj, split = "[:|]"))[3])
+  # 内部函数：从 GTF 补全只有 BSJ 坐标的异构体 (优化版)
+  only_supplyfrom_gtf <- function(bsj, gtf_gr) {
+    # 解析 BSJ 坐标
+    parts <- unlist(strsplit(bsj, "[:|]"))
+    chr_val <- parts[1]
+    start_val <- as.numeric(parts[2])
+    end_val <- as.numeric(parts[3])
     
-    # Retrieve exon information from GTF annotation
-    supply_gtf_exon <- gtf_exontable[gtf_exontable$seqnames == chr & 
-                                     gtf_exontable$start >= as.numeric(start) & 
-                                     gtf_exontable$end <= as.numeric(end), ]
+    # 查找完全位于 BSJ 范围内的外显子
+    query_gr <- GRanges(seqnames = chr_val, ranges = IRanges(start = start_val, end = end_val))
+    hits <- findOverlaps(gtf_gr, query_gr, type = "within")
     
-    if(nrow(supply_gtf_exon) > 0){
-      # Format exon information
-      supply_exon <- supply_gtf_exon[, c("seqnames", "start", "end")]
-      names(supply_exon) <- c("chrom", "exonStart", "exonEnd")
-      supply_exon <- combine_exons(supply_exon)
-      supply_exon <- as.data.frame(supply_exon)
+    if (length(hits) > 0) {
+      # 提取匹配的外显子并合并相邻/重叠区间 (reduce)
+      matched_exons <- gtf_gr[queryHits(hits)]
+      merged_gr <- reduce(matched_exons)
+      final_exons <- as.data.frame(merged_gr)
       
-      # Generate isoform ID
-      isoformID <- paste0("chr", chr, "|",
-                         paste(supply_exon$exonStart, collapse = ","), "|",
-                         paste(supply_exon$exonEnd, collapse = ","), "|", 
-                         unique(supply_gtf_exon$strand))
-      
-      # Create results data frame
-      results <- data.frame(chr = chr, start = start, end = end, 
-                           strand = unique(supply_gtf_exon$strand), 
-                           bsj = bsj, isoformID = isoformID,
-                           isoform_state = "onlyoutRef_gtf", 
-                           ReferenceSource = "gtf")
-      
-      # Validate that start and end positions match the exon structure
-      if (start == supply_exon$exonStart[1] & end == supply_exon$exonEnd[nrow(supply_exon)]) {
-        return(results)
-      } else {
-        return(data.frame())
+      # 验证首尾坐标是否完全匹配 (对应原代码逻辑)
+      if (start_val == final_exons$start[1] && end_val == final_exons$end[nrow(final_exons)]) {
+        
+        exon_starts <- paste(final_exons$start, collapse = ",")
+        exon_ends <- paste(final_exons$end, collapse = ",")
+        strand_val <- as.character(runValue(strand(matched_exons))[1])
+        
+        isoformID <- paste0("chr", chr_val, "|", exon_starts, "|", exon_ends, "|", strand_val)
+        
+        return(data.frame(
+          chr = chr_val, start = start_val, end = end_val, strand = strand_val,
+          bsj = bsj, isoformID = isoformID,
+          isoform_state = "onlyoutRef_gtf", ReferenceSource = "gtf",
+          stringsAsFactors = FALSE
+        ))
       }
-    } else {
-      return(data.frame())
     }
+    return(NULL) # 不匹配则返回 NULL，方便后续 rbindlist 自动过滤
   }
-  
-  # Helper function: Convert exon table to GTF format
-  exontable_to_gtf <- function(exon_df){
-    # Initialize list to store GTF entries
-    gtf.list <- list()
-    
-    # Process each row of the exon data frame
-    for(index in 1:nrow(exon_df)){
-      onerow <- exon_df[index, ]
-      chr <- onerow$chr
-      ciri <- "ciri"
-      type <- "exon" 
-      start <- onerow$start
-      end <- onerow$end
-      attr1 <- "."
-      strand <- onerow$strand
-      attr2 <- "."
-      attr_str <- paste0('bsj "', onerow$bsj, '"; ', 
-                    'transcript_id "', onerow$isoformID, '"; ',
-                    'isoform_state "', onerow$isoform_state, '"; ',
-                    'ReferenceSource "', onerow$ReferenceSource, '"; ')
-      
-      # Create GTF entry
-      gtfresults <- data.frame(chr = chr, source = "ciri", type = "exon", 
-                              start = start, end = end, attr1 = ".", 
-                              strand = strand, attr2 = ".", attr = attr_str)
-      gtf.list[[index]] <- gtfresults
-    }
-    
-    # Combine all GTF entries
-    gtf <- do.call(rbind, gtf.list)
-    return(gtf)
-  }
-  
-  # Load required annotation files
-  message("Loading annotation files...")
-  loadAnnotationFiles()
-  gtf_exontable <- Homo_sapiens.GRCh38.94.chr.gtf_exontable
-  
-  # Read reference file
-  message("Reading reference isoform data...")
-  nrow(ReferenceSet)
-  
-  # Read data path file
-  message("Reading data path file...")
-  nrow(SamplePath)
 
-  # Process each sample
+  # 2. 遍历样本处理
+  SamplePath <- as.data.table(SamplePath)
+  ReferenceSet <- as.data.table(ReferenceSet)
+
   for (i in 1:nrow(SamplePath)) {
     SampleName <- SamplePath$SampleName[i]
+    dirquant <- paste0(SamplePath$FullPath[i], "/quant/")
+    if (!dir.exists(dirquant)) dir.create(dirquant, recursive = TRUE)
+    
+    # 文件路径准备
+    stout_path <- file.path(SamplePath$FullPath[i], "vis/stout.list")
+    ciri_path <- file.path(SamplePath$FullPath[i], "full/ciri.report")
+    
+    if (!file.exists(stout_path) || !file.exists(ciri_path)) {
+      message(paste0("Skip: ", SampleName, " (Missing input files)"))
+      next
+    }
+    
     message(paste0("Processing sample: ", SampleName))
     
-    # Create quantification directory if not exists
-    dirquant <- paste0(SamplePath$FullPath[i], "quant/")
-    if (!dir.exists(dirquant)) {
-      message(paste0("Creating directory: ", dirquant))
-      dir.create(dirquant, recursive = TRUE)
-    }
-
-    # Read visualization data
-    stout.list.path <- file.path(SamplePath$FullPath[i], "vis/stout.list")
-    message(paste0("Reading stout.list for sample ", SampleName))
-    stout.list <- data.table::fread(stout.list.path, data.table = FALSE, sep = "\t", header = FALSE)
-    colnames(stout.list) <- c("Image_ID", "bsj", "chr", "start", "end", "total_exp",
-                             "isoform_number", "isoform_exp", "isoform_length", 
-                             "isoform_state", "strand", "gene_id", "isoform_cirexon") 
-    stout.list$chr <- gsub("chr", "", stout.list$chr)
+    # 读取数据
+    stout_list <- fread(stout_path, header = FALSE)
+    setnames(stout_list, c("Image_ID", "bsj", "chr", "start", "end", "total_exp",
+                           "isoform_number", "isoform_exp", "isoform_length", 
+                           "isoform_state", "strand", "gene_id", "isoform_cirexon"))
     
-    # Read CIRI report
-    ciri.report.path <- file.path(SamplePath$FullPath[i], "full/ciri.report")
-    message(paste0("Reading CIRI report for sample ", SampleName))
-    ciri.report <- data.table::fread(ciri.report.path, data.table = FALSE, sep = "\t", header = TRUE)
-
-    # Get different types of BSJs
-    message("Classifying circRNA isoforms...")
-    type_only <- setdiff(ciri.report$circRNA_ID, stout.list$bsj)
-    type_onlyinRef <- intersect(ReferenceSet$bsj, type_only)
-    type_onlyoutRef <- setdiff(type_only, ReferenceSet$bsj)
+    ciri_report <- fread(ciri_path, header = TRUE)
     
-    message(paste0("Found ", length(type_only), " 'only' isoforms: ", 
-                  length(type_onlyinRef), " in reference, ", 
-                  length(type_onlyoutRef), " not in reference"))
-
-    # Process isoforms from reference data
-    message("Processing isoforms from reference data...")
-    type_onlyinRef.df <- ReferenceSet[ReferenceSet$bsj %in% type_onlyinRef, ]
-    type_onlyinRef.df.list <- split(type_onlyinRef.df, type_onlyinRef.df$bsj)
-    type_onlyinRef.list <- list()
+    # 识别 "only" 异构体 (CIRI report 中有但 stout.list 中没有)
+    type_only_ids <- setdiff(ciri_report$circRNA_ID, stout_list$bsj)
     
-    # Process each BSJ in reference data (show progress every 100 items)
-    n_ref_bsj <- length(type_onlyinRef.df.list)
-    for (index in 1:n_ref_bsj) {
-      if (index %% 100 == 0 || index == n_ref_bsj) {
-        percent <- round(index / n_ref_bsj * 100, 1)
-        message(paste0("Sample ", SampleName, ": Processed ", index, "/", n_ref_bsj, 
-                      " reference BSJs (", percent, "%)"))
-      }
-      
-      onelist <- type_onlyinRef.df.list[[index]]
-      
-      # Prioritize Full/Blood isoforms, then longest isoform
-      if (length(grep("Full|Blood", onelist$ReferenceType)) > 0) {
-        select_isoform_for_bsj <- onelist[grep("Full|Blood", onelist$ReferenceSource), ]
-        select_isoform_for_bsj <- select_isoform_for_bsj[which.max(select_isoform_for_bsj$exon_total_length), ]
-      } else {
-        select_isoform_for_bsj <- onelist[which.max(onelist$exon_total_length), ]
-      }
-      
-      type_onlyinRef.list[[index]] <- select_isoform_for_bsj
+    if (length(type_only_ids) == 0) {
+      message(paste0("No 'only' isoforms for sample ", SampleName))
+      next
     }
     
-    # Combine results
-    type_onlyinRef.df <- do.call(rbind, type_onlyinRef.list)
-    type_onlyinRef.df$isoform_state <- "onlyinRef_ref"
-    type_onlyinRef.df <- type_onlyinRef.df[, c("chr", "start", "end", "strand", "bsj", "isoformID", "isoform_state", "ReferenceSource")]
-
-    # Process isoforms from GTF annotation
-    message("Processing isoforms from GTF annotation...")
-    if (length(type_onlyoutRef) > 0) {
-      type_onlyoutRef.list <- list()
-      n_non_ref_bsj <- length(type_onlyoutRef)
-      
-      # Process each BSJ using GTF annotation (show progress every 100 items)
-      for (index in 1:n_non_ref_bsj) {
-        if (index %% 100 == 0 || index == n_non_ref_bsj) {
-          percent <- round(index / n_non_ref_bsj * 100, 1)
-          message(paste0("Sample ", SampleName, ": Processed ", index, "/", n_non_ref_bsj, 
-                        " non-reference BSJs (", percent, "%)"))
-        }
-        
-        bsj <- type_onlyoutRef[index]
-        results <- only_supplyfrom_gtf(bsj)
-        type_onlyoutRef.list[[index]] <- results
-      }
-      
-      if (length(type_onlyoutRef.list) > 0) {
-        type_onlyoutRef.df <- do.call(rbind, type_onlyoutRef.list)
-        type_onlyoutRef.df <- type_onlyoutRef.df[!duplicated(type_onlyoutRef.df), ]
-      } else {
-        type_onlyoutRef.df <- data.frame()
-      }
-    } else {
-      message("No non-reference 'only' isoforms found.")
-      type_onlyoutRef.df <- data.frame()
-    }
-
-    # Combine all results
-    message("Combining all processed isoforms...")
-    type_only.df <- rbind(type_onlyinRef.df, type_onlyoutRef.df)
+    # 区分参考集内和参考集外
+    type_onlyinRef_ids <- intersect(ReferenceSet$bsj, type_only_ids)
+    type_onlyoutRef_ids <- setdiff(type_only_ids, ReferenceSet$bsj)
     
-    # Convert exon information to GTF format
-    message("Converting exon information to GTF format...")
-    type_only_exon.list <- list()
-    n_isoforms <- nrow(type_only.df)
+    res_list <- list()
     
-    # Process each isoform (show progress every 100 items)
-    for (index in 1:n_isoforms) {
-      if (index %% 100 == 0 || index == n_isoforms) {
-        percent <- round(index / n_isoforms * 100, 1)
-        message(paste0("Sample ", SampleName, ": Processed exon information for ", index, "/", n_isoforms, 
-                      " isoforms (", percent, "%)"))
-      }
+    # --- 处理参考集内的 Only ---
+    if (length(type_onlyinRef_ids) > 0) {
+      ref_hits <- ReferenceSet[bsj %dt_in% type_onlyinRef_ids]
       
-      onerow <- type_only.df[index, ]
-      exon_start <- as.numeric(unlist(strsplit(unlist(strsplit(onerow$isoformID, split = "\\|"))[[2]], split = ",")))
-      exon_end <- as.numeric(unlist(strsplit(unlist(strsplit(onerow$isoformID, split = "\\|"))[[3]], split = ",")))
+      # 对每个 BSJ 选择最优异构体 (利用 data.table 的分组排序功能，极快)
+      # 优先级：Full/Blood > 长度最大
+      ref_hits[, is_priority := grepl("Full|Blood", ReferenceSource)]
+      best_ref <- ref_hits[order(bsj, -is_priority, -exon_total_length), 
+                           .SD[1], by = bsj]
       
-      exon <- data.frame(start = exon_start, end = exon_end)
-      exon <- exon[order(exon$start, decreasing = FALSE), ]
-      
-      multirow <- onerow[rep(1, nrow(exon)), ]
-      multirow$start <- exon$start
-      multirow$end <- exon$end
-      
-      type_only_exon.list[[index]] <- multirow
+      best_ref[, isoform_state := "onlyinRef_ref"]
+      # 统一列名以匹配后续合并
+      res_list[[1]] <- best_ref[, .(chr, start, end, strand, bsj, isoformID, isoform_state, ReferenceSource)]
     }
     
-    # Combine all exon information
-    type_only_exon <- do.call(rbind, type_only_exon.list)
-    rownames(type_only_exon) <- NULL
+    # --- 处理参考集外的 Only (使用 GTF 补全) ---
+    if (length(type_onlyoutRef_ids) > 0) {
+      message(paste0("Supplying ", length(type_onlyoutRef_ids), " isoforms from GTF..."))
+      # 使用 lapply 替代 for 循环
+      out_res <- lapply(type_onlyoutRef_ids, function(b) only_supplyfrom_gtf(b, gtf_gr))
+      res_list[[2]] <- rbindlist(out_res)
+    }
     
-    # Convert to GTF format
-    type_only_gtf <- exontable_to_gtf(type_only_exon)
-    type_only_gtf$chr <- gsub("chr", "", type_only_gtf$chr)
+    # 合并所有分类结果
+    all_only <- rbindlist(res_list, use.names = TRUE)
     
-    # Write output to file
+    if (nrow(all_only) == 0) {
+      message(paste0("No valid isoforms generated for ", SampleName))
+      next
+    }
+    
+    # --- 核心优化：生成 GTF 数据结构 (完全向量化) ---
+    # 1. 快速展开外显子
+    all_only[, `:=`(starts_str = tstrsplit(isoformID, "\\|")[[2]], 
+                    ends_str = tstrsplit(isoformID, "\\|")[[3]])]
+    
+    gtf_final <- all_only[, .(
+      start = unlist(strsplit(as.character(starts_str), ",")),
+      end = unlist(strsplit(as.character(ends_str), ","))
+    ), by = .(chr, bsj, isoformID, isoform_state, ReferenceSource, strand)]
+    
+    # 2. 向量化构造 GTF 列
+    gtf_table <- data.table(
+      V1 = gsub("chr", "", gtf_final$chr),
+      V2 = "ciri",
+      V3 = "exon",
+      V4 = gtf_final$start,
+      V5 = gtf_final$end,
+      V6 = ".",
+      V7 = gtf_final$strand,
+      V8 = ".",
+      V9 = paste0('bsj "', gtf_final$bsj, '"; ',
+                  'transcript_id "', gtf_final$isoformID, '"; ',
+                  'isoform_state "', gtf_final$isoform_state, '"; ',
+                  'ReferenceSource "', gtf_final$ReferenceSource, '";')
+    )
+    
+    # 写出结果 (使用 fwrite，速度远超 write.table)
     output_file <- paste0(dirquant, "circRNA_only.gtf")
-    message(paste0("Writing output to: ", output_file))
-    options(scipen = 999)
-    write.table(type_only_gtf, file = output_file, sep = "\t", quote = FALSE, 
-                col.names = FALSE, append = FALSE, row.names = FALSE)
+    fwrite(gtf_table, file = output_file, sep = "\t", quote = FALSE, col.names = FALSE)
     
     message(paste0("Completed processing for sample ", SampleName))
   }
@@ -299,5 +173,5 @@ circRNA_only.gtf <- function(SamplePath = samplepath,
   message("All samples processed successfully!")
 }
 
-
-
+# 辅助操作符补充（如果环境中没有 %dt_in%）
+`%dt_in%` <- function(x, y) x %in% y
