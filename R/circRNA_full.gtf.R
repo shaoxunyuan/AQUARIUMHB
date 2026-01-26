@@ -17,7 +17,7 @@ circRNA_full.gtf <- function(SamplePath = samplepath,
   if (!requireNamespace("progress", quietly = TRUE)) stop("Package 'progress' is required for industrial bars.")
 
   # --- Step 1: 循环外处理预加载的 ReferenceSet ---
-  message("\033[32m>>> Step 1: Pre-indexing ReferenceSet (one-time operation)...\033[39m")
+  message("\033[32m>>> Step 1: Pre-indexing ReferenceSet...\033[39m")
   ReferenceSet_dt <- data.table::as.data.table(ReferenceSet)
   
   # 建立高速 Join 索引
