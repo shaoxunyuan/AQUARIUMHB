@@ -1,126 +1,116 @@
-#' Generate circRNA Full GTF File (Optimized & Robust)
+#' Generate circRNA Full GTF File (Industrial Strength)
 #'
 #' @param SamplePath Data of input, containing sample information, must have columns: SampleName, FullPath.
 #' @param ReferenceSet Referenceset data of all possible full-length isoforms.
 #'
 #' @import data.table
+#' @import progress
 #' @export
-circRNA_full.gtf <- function(SamplePath, ReferenceSet) {
+circRNA_full.gtf <- function(SamplePath = samplepath, 
+                             ReferenceSet = ReferenceSet) {
   
-  # 防止科学计数法输出
+  # --- 环境设置与依赖检查 ---
   old_scipen <- options(scipen = 999)$scipen
   on.exit(options(scipen = old_scipen))
   
-  # 确保必要的包已加载
-  if (!requireNamespace("data.table", quietly = TRUE)) {
-    stop("Package 'data.table' is required but not installed. Please run install.packages('data.table')")
-  }
+  if (!requireNamespace("data.table", quietly = TRUE)) stop("Package 'data.table' is required.")
+  if (!requireNamespace("progress", quietly = TRUE)) stop("Package 'progress' is required for industrial bars.")
 
-  # --- 解决报错的核心修改：显式调用 data.table 命名空间 ---
-  # 预处理参考集：建立 key 提升匹配速度
-  ReferenceSet <- data.table::as.data.table(ReferenceSet)
-  data.table::setkey(ReferenceSet, isoformID)
+  # --- Step 1: 循环外处理预加载的 ReferenceSet ---
+  message("\033[32m>>> Step 1: Pre-indexing ReferenceSet (one-time operation)...\033[39m")
+  ReferenceSet_dt <- data.table::as.data.table(ReferenceSet)
+  
+  # 建立高速 Join 索引
+  ref_map <- unique(ReferenceSet_dt[, .(isoformID, ReferenceSource)])
+  data.table::setkey(ref_map, isoformID)
+  
+  SamplePath_dt <- data.table::as.data.table(SamplePath)
+  num_samples <- nrow(SamplePath_dt)
+  message(sprintf("--- ReferenceSet indexed. Ready to process %d samples.", num_samples))
 
-  SamplePath <- data.table::as.data.table(SamplePath)
-
-  # Process each sample
-  for (i in 1:nrow(SamplePath)) {
-    SampleName <- SamplePath$SampleName[i]
-    message(paste0("Processing sample: ", SampleName))
+  # --- Step 2: 样本循环 ---
+  for (i in 1:num_samples) {
+    SampleName <- SamplePath_dt$SampleName[i]
+    # 使用 ANSI 颜色高亮样本标题
+    message(sprintf("\n\033[34m[*] [%d/%d] Processing Sample: %s\033[39m", i, num_samples, SampleName))
     
-    dirquant <- paste0(SamplePath$FullPath[i], "quant/")
-    if (!dir.exists(dirquant)) {
-      message(paste0("Creating directory: ", dirquant))
-      dir.create(dirquant, recursive = TRUE)
-    }
+    dirquant <- paste0(SamplePath_dt$FullPath[i], "quant/")
+    if (!dir.exists(dirquant)) dir.create(dirquant, recursive = TRUE)
     
-    stout.list.path <- file.path(SamplePath$FullPath[i], "vis/stout.list")
-    
+    stout.list.path <- file.path(SamplePath_dt$FullPath[i], "vis/stout.list")
     if (!file.exists(stout.list.path)) {
-      warning(paste0("stout.list file not found for sample ", SampleName, ". Skipping."))
+      message("\033[31m  ! Skipping: stout.list not found.\033[39m")
       next
     }
     
-    # 使用 fread 快速读取
-    message(paste0("Reading stout.list for sample ", SampleName))
     stout.list <- data.table::fread(stout.list.path, header = FALSE)
-    
     data.table::setnames(stout.list, c("Image_ID", "bsj", "chr", "start", "end", "total_exp",
                                      "isoform_number", "isoform_exp", "isoform_length", 
                                      "isoform_state", "strand", "gene_id", "isoform_cirexon"))
     
-    # 筛选 'Full' 异构体
-    type_full <- stout.list[isoform_state == "Full", 
-                            .(chr, start, end, strand, bsj, isoform_state, isoform_cirexon)]
+    type_full <- stout.list[isoform_state == "Full"]
+    num_full <- nrow(type_full)
     
-    if (nrow(type_full) == 0) {
-      warning(paste0("No 'Full' isoforms found for sample ", SampleName))
+    if (num_full == 0) {
+      message("  --- No 'Full' isoforms found.")
       next
     }
-    
-    message(paste0("Processing ", nrow(type_full), " 'Full' isoforms..."))
 
-    # --- 核心优化：向量化解析外显子坐标 ---
-    
-    # 1. 预处理 BSJ 格式
-    type_full[, bsj_formatted := paste0(chr, ":", start, "|", end)]
-    
-    # 2. 向量化展开外显子
-    gtf_expanded <- type_full[, {
-      # 拆分外显子字符串
-      exon_pairs <- unlist(strsplit(isoform_cirexon, ","))
-      # 进一步拆分 start 和 end (使用 data.table 的 tstrsplit)
-      exon_coords <- data.table::tstrsplit(exon_pairs, "-")
-      e_starts <- as.numeric(exon_coords[[1]])
-      e_ends <- as.numeric(exon_coords[[2]])
-      
-      # 构造 isoformID
-      iso_id <- paste0("chr", chr, "|", paste(e_starts, collapse = ","), "|", paste(e_ends, collapse = ","), "|", strand)
-      
-      list(
-        start = e_starts,
-        end = e_ends,
-        isoformID = iso_id,
-        bsj_id = bsj_formatted
-      )
-    }, by = .(chr, strand, bsj_id_raw = bsj)]
+    # --- 工业级进度条：针对 ID 生成阶段 ---
+    # 因为 sapply 循环是该函数在单样本处理中最耗时的部分
+    pb <- progress::progress_bar$new(
+      format = "  Generating IDs [:bar] :percent | ETA: :eta",
+      total = num_full, clear = FALSE, width = 60
+    )
 
-    # --- 核心优化：向量化映射 ReferenceSource ---
-    ref_map <- unique(ReferenceSet[, .(isoformID, ReferenceSource)])
-    data.table::setkey(ref_map, isoformID)
-    
-    gtf_expanded <- ref_map[gtf_expanded, on = "isoformID"]
-
-    # --- 构造属性字符串 ---
-    gtf_expanded[, attr := paste0('bsj "', bsj_id, '"; ',  
-                                  'transcript_id "', isoformID, '"; ',  
-                                  'isoform_state "Full"; ',  
-                                  'ReferenceSource "', ReferenceSource, '";')]
-
-    # 构造最终 GTF 表格
-    type_full.gtf <- gtf_expanded[, .(
-      chr = chr,
-      ciri = "ciri",
-      type = "exon",
-      start = start,
-      end = end,
-      attr1 = ".",
-      strand = strand,
-      attr2 = ".",
-      attr = attr
+    type_full[, `:=`(
+      bsj_str = paste0(chr, ":", start, "|", end),
+      isoformID = sapply(1:.N, function(j){
+        pb$tick() # 推进进度条
+        exons <- unlist(strsplit(as.character(isoform_cirexon[j]), ","))
+        coords <- data.table::tstrsplit(exons, "-")
+        paste0("chr", chr[j], "|", 
+               paste(coords[[1]], collapse = ","), "|", 
+               paste(coords[[2]], collapse = ","), "|", 
+               strand[j])
+      })
     )]
 
-    # --- 输出处理 ---
+    # --- 展开与 Join ---
+    message("  --- Expanding coordinates and joining reference...")
+    gtf_data <- type_full[, {
+      exons <- unlist(strsplit(as.character(isoform_cirexon), ","))
+      coords <- data.table::tstrsplit(exons, "-")
+      list(
+        start = as.numeric(coords[[1]]),
+        end = as.numeric(coords[[2]])
+      )
+    }, by = .(chr, strand, bsj = bsj_str, isoformID)]
+
+    # 极速匹配
+    gtf_data <- ref_map[gtf_data, on = "isoformID"]
+
+    # 构造属性列
+    gtf_data[, attr := paste0('bsj "', bsj, '"; ',  
+                              'transcript_id "', isoformID, '"; ',  
+                              'isoform_state "Full"; ',  
+                              'ReferenceSource "', ReferenceSource, '";')]
+
+    # 构造最终表格
+    final_gtf <- gtf_data[, .(
+      chr = chr, source = "ciri", type = "exon",
+      start = start, end = end, score = ".",
+      strand = strand, frame = ".", attributes = attr
+    )]
+
+    # 写出文件
     output_file <- paste0(dirquant, "circRNA_full.gtf")
-    message(paste0("Writing output to: ", output_file))
-    
-    # 使用 fwrite 导出
-    data.table::fwrite(type_full.gtf, file = output_file, sep = "\t", quote = FALSE, 
+    data.table::fwrite(final_gtf, file = output_file, sep = "\t", quote = FALSE, 
                        col.names = FALSE, row.names = FALSE)
     
-    message(paste0("Completed processing for sample ", SampleName))
+    message(sprintf("  \033[32m✔\033[39m Success: %d exon rows written.", nrow(final_gtf)))
   }
   
-  message("All samples processed successfully!")
+  message("\n\033[32m>>> [COMPLETE] All samples processed successfully!\033[39m")
   return(invisible(NULL))
 }
