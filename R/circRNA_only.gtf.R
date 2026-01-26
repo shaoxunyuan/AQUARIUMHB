@@ -14,13 +14,20 @@ circRNA_only.gtf <- function(SamplePath = samplepath,
   old_scipen <- options(scipen = 999)$scipen
   on.exit(options(scipen = old_scipen))
   
+  # 依赖检查与强加载
   if (!requireNamespace("data.table", quietly = TRUE)) stop("Package 'data.table' is required.")
   if (!requireNamespace("GenomicRanges", quietly = TRUE)) stop("Package 'GenomicRanges' is required.")
   if (!requireNamespace("progress", quietly = TRUE)) stop("Package 'progress' is required.")
+  if (!requireNamespace("S4Vectors", quietly = TRUE)) stop("Package 'S4Vectors' is required.")
 
   # 1. 按照习惯加载注释文件并建立索引
   message("\033[32m>>> Step 1: Loading annotation files and building index...\033[39m")
   loadAnnotationFiles()
+  
+  if (!exists("Homo_sapiens.GRCh38.94.chr.gtf_exontable")) {
+    stop("Annotation table 'Homo_sapiens.GRCh38.94.chr.gtf_exontable' not found.")
+  }
+  
   gtf_exontable_dt <- data.table::as.data.table(Homo_sapiens.GRCh38.94.chr.gtf_exontable)
   
   # 构建 GRanges 索引用于极速查找
@@ -32,6 +39,7 @@ circRNA_only.gtf <- function(SamplePath = samplepath,
   # 2. 预处理参考集 (循环外执行，提升效率)
   message("\033[32m>>> Step 2: Pre-indexing ReferenceSet...\033[39m")
   ReferenceSet_dt <- data.table::as.data.table(ReferenceSet)
+  
   # 提取用于快速匹配的 BSJ 映射表
   ref_map <- unique(ReferenceSet_dt[, .(bsj, isoformID, ReferenceSource, exon_total_length)])
   # 标记优先级 (Full/Blood 优先)
@@ -57,7 +65,9 @@ circRNA_only.gtf <- function(SamplePath = samplepath,
       
       # 验证首尾是否对齐 (原代码逻辑)
       if (start_val == final_ex_df$start[1] && end_val == final_ex_df$end[nrow(final_ex_df)]) {
-        strand_val <- as.character(runValue(strand(matched_exons))[1])
+        # --- 修复点：显式调用 S4Vectors::runValue ---
+        strand_val <- as.character(S4Vectors::runValue(GenomicRanges::strand(matched_exons))[1])
+        
         isoID <- paste0("chr", chr_val, "|", paste(final_ex_df$start, collapse = ","), "|", 
                         paste(final_ex_df$end, collapse = ","), "|", strand_val)
         
@@ -81,7 +91,6 @@ circRNA_only.gtf <- function(SamplePath = samplepath,
     dirquant <- paste0(SamplePath_dt$FullPath[i], "quant/")
     if (!dir.exists(dirquant)) dir.create(dirquant, recursive = TRUE)
 
-    # 读取 stout.list 和 ciri.report
     stout_path <- file.path(SamplePath_dt$FullPath[i], "vis/stout.list")
     ciri_path <- file.path(SamplePath_dt$FullPath[i], "full/ciri.report")
     if (!file.exists(stout_path) || !file.exists(ciri_path)) next
@@ -95,7 +104,10 @@ circRNA_only.gtf <- function(SamplePath = samplepath,
 
     # 识别 Only 异构体
     type_only_ids <- setdiff(ciri_report$circRNA_ID, stout_list$bsj)
-    if (length(type_only_ids) == 0) next
+    if (length(type_only_ids) == 0) {
+      message("  --- No 'only' isoforms found.")
+      next
+    }
 
     # 分类
     type_onlyinRef_ids <- intersect(unique(ref_map$bsj), type_only_ids)
@@ -103,22 +115,25 @@ circRNA_only.gtf <- function(SamplePath = samplepath,
     
     res_list <- list()
 
-    # 处理在参考集中的 Only
+    # 处理在参考集中的 Only (使用 data.table 快速筛选)
     if (length(type_onlyinRef_ids) > 0) {
       message(paste0("  --- Selecting ", length(type_onlyinRef_ids), " isoforms from ReferenceSet..."))
-      # 使用 data.table 极速筛选和排序
       best_ref <- ref_map[bsj %in% type_onlyinRef_ids]
       best_ref <- best_ref[order(bsj, -is_priority, -exon_total_length), .SD[1], by = bsj]
       
       best_ref[, isoform_state := "onlyinRef_ref"]
-      res_list[[1]] <- best_ref[, .(chr = sapply(strsplit(bsj, ":"), `[`, 1), 
-                                     start = as.numeric(sapply(strsplit(sapply(strsplit(bsj, ":"), `[`, 2), "\\|"), `[`, 1)),
-                                     end = as.numeric(sapply(strsplit(bsj, "\\|"), `[`, 2)),
-                                     strand = sapply(strsplit(isoformID, "\\|"), `[`, 4),
-                                     bsj, isoformID, isoform_state, ReferenceSource)]
+      
+      # 解析坐标和链信息
+      res_list[[1]] <- best_ref[, .(
+        chr = sapply(strsplit(bsj, ":"), `[`, 1), 
+        start = as.numeric(sapply(strsplit(sapply(strsplit(bsj, ":"), `[`, 2), "\\|"), `[`, 1)),
+        end = as.numeric(sapply(strsplit(bsj, "\\|"), `[`, 2)),
+        strand = sapply(strsplit(isoformID, "\\|"), `[`, 4),
+        bsj, isoformID, isoform_state, ReferenceSource
+      )]
     }
 
-    # 处理参考集外的 Only (集成进度条)
+    # 处理参考集外的 Only (带进度条)
     if (length(type_onlyoutRef_ids) > 0) {
       pb <- progress::progress_bar$new(
         format = "  GTF Search [:bar] :percent | ETA: :eta",
@@ -144,7 +159,7 @@ circRNA_only.gtf <- function(SamplePath = samplepath,
       end = unlist(strsplit(as.character(ends_str), ","))
     ), by = .(chr, bsj, isoformID, isoform_state, ReferenceSource, strand)]
     
-    # 构造 GTF
+    # 构造标准 GTF
     gtf_table <- data.table::data.table(
       V1 = gsub("chr", "", gtf_final$chr), V2 = "ciri", V3 = "exon",
       V4 = gtf_final$start, V5 = gtf_final$end, V6 = ".", V7 = gtf_final$strand, V8 = ".",
