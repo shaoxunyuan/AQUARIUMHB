@@ -113,12 +113,25 @@ circRNA_break.gtf <- function(SamplePath = samplepath,
         
         if (any(match_idx)) {
           best <- ref_subset[match_idx][which.max(exon_total_length)]
+
+          ref_strand <- sub("^.*\\|([+-])$", "\\1", best$isoformID)
+          strand_use <- ifelse(row_curr$strand %in% c("+","-"),
+                              row_curr$strand,
+                              ref_strand)
+
           res_list[[length(res_list) + 1]] <- data.frame(
-            chr = row_curr$chr, start = row_curr$start, end = row_curr$end, strand = row_curr$strand,
-            bsj = row_curr$bsj, isoformID = best$isoformID,
-            isoform_state = "breakinRef_ref", ReferenceSource = best$ReferenceSource, stringsAsFactors = FALSE
+            chr = row_curr$chr,
+            start = row_curr$start,
+            end = row_curr$end,
+            strand = strand_use,
+            bsj = row_curr$bsj,
+            isoformID = best$isoformID,
+            isoform_state = "breakinRef_ref",
+            ReferenceSource = best$ReferenceSource,
+            stringsAsFactors = FALSE
           )
-        } else {
+        }
+        else {
           res_list[[length(res_list) + 1]] <- break_supplyfrom_gtf(row_curr, gtf_gr, "breakinRef_gtf")
         }
       }
@@ -143,6 +156,7 @@ circRNA_break.gtf <- function(SamplePath = samplepath,
       end = unlist(strsplit(as.character(ends_str), ","))
     ), by = .(chr, bsj, isoformID, isoform_state, ReferenceSource, strand)]
     
+    gtf_final[, strand := ifelse(strand %in% c("+","-"), strand, ".")]
     gtf_table <- data.table::data.table(
       V1 = gsub("chr", "", gtf_final$chr), V2 = "ciri", V3 = "exon",
       V4 = gtf_final$start, V5 = gtf_final$end, V6 = ".", V7 = gtf_final$strand, V8 = ".",
