@@ -4,32 +4,43 @@
 #' processes isoform states, and generates a consolidated dataframe of 
 #' circRNA isoforms.
 #'
-#' @param SamplePath Dataframe containing sample paths (output from 
+#' @param sample_path Dataframe containing sample paths (output from 
 #'   fread("DataPathFile.txt")).
 #' @param output_file Character, path for the output file (default: 
-#'   "final_circRNA.df.txt").
+#'   "final_circRNA.datatable.txt").
 #'
 #' @return Dataframe with merged circRNA isoform annotations.
 #'
 #' @importFrom rtracklayer import
-#' @importFrom dplyr distinct arrange select
+#' @importFrom dplyr distinct arrange select mutate
 #' @importFrom data.table fread setDT
-#' @import purrr
+#' @importFrom purrr map map_dbl map_int map_chr
 #'
 #' @examples
 #' \dontrun{
-#' SamplePath <- loadSamplePathFile()
-#' merged_isoforms <- Merge_circRNA.gtf(
-#'   SamplePath, 
+#' sample_path <- loadSamplePathFile()
+#' merged_isoforms <- merge_circRNA_gtf(
+#'   sample_path,
 #'   output_file = "final_circRNA.datatable.txt"
 #' )
 #' }
 #'
 #' @export
-Merge_circRNA.gtf <- function(
-  SamplePath,
+merge_circRNA_gtf <- function(
+  sample_path,
   output_file = "final_circRNA.datatable.txt"
 ) {
+  # 参数检查
+  if (!is.data.frame(sample_path)) {
+    stop("sample_path must be a dataframe")
+  }
+  if (!"FullPath" %in% colnames(sample_path)) {
+    stop("sample_path must contain a 'FullPath' column")
+  }
+  if (!is.character(output_file)) {
+    stop("output_file must be a character string")
+  }
+  
   # 定义 isoform_state 的优先级顺序（用于后续排序）
   isoform_state_level <- c(
     "Full", "breakinRef_ref", "breakinRef_gtf", 
@@ -37,21 +48,21 @@ Merge_circRNA.gtf <- function(
   )
   
   # 收集所有样本路径下的 GTF 文件路径
-  filelist <- character()
-  for (i in 1:nrow(SamplePath)) {
+  file_list <- character()
+  for (i in 1:nrow(sample_path)) {
     files <- list.files(
-      paste0(SamplePath$FullPath[i], "/quant/"),
+      file.path(sample_path$FullPath[i], "quant"),
       pattern = "^(circRNA_full|circRNA_break|circRNA_only)\\.gtf$",
       full.names = TRUE
     )
-    filelist <- append(filelist, files)
+    file_list <- append(file_list, files)
   }
   
   # 逐个读取 GTF 文件并转换为 data.frame，存入列表
   gtf_list <- list()
-  for (i in seq_along(filelist)) {
-    message("Processing (", i, "/", length(filelist), "): ", filelist[i])
-    gtf_df <- import(filelist[i]) %>% as.data.frame()
+  for (i in seq_along(file_list)) {
+    message("Processing (", i, "/", length(file_list), "): ", file_list[i])
+    gtf_df <- import(file_list[i]) %>% as.data.frame()
     gtf_list[[i]] <- gtf_df
   }
   
@@ -60,10 +71,10 @@ Merge_circRNA.gtf <- function(
   rownames(merged_gtf) <- NULL
   
   # 标准化列名：将 rtracklayer 导入的列名统一为自定义名称
-  colnames(merged_gtf)[grep("seqnames", colnames(merged_gtf))] <- "Chr"
-  colnames(merged_gtf)[grep("start", colnames(merged_gtf))] <- "ExonStart"
-  colnames(merged_gtf)[grep("end", colnames(merged_gtf))] <- "ExonEnd"
-  colnames(merged_gtf)[grep("width", colnames(merged_gtf))] <- "ExonWidth"
+  colnames(merged_gtf)[grep("seqnames", colnames(merged_gtf), fixed = TRUE)] <- "Chr"
+  colnames(merged_gtf)[grep("start", colnames(merged_gtf), fixed = TRUE)] <- "ExonStart"
+  colnames(merged_gtf)[grep("end", colnames(merged_gtf), fixed = TRUE)] <- "ExonEnd"
+  colnames(merged_gtf)[grep("width", colnames(merged_gtf), fixed = TRUE)] <- "ExonWidth"
   
   # 选择关键列，并按染色体和转录本 ID 排序去重
   merged_gtf <- merged_gtf %>%
@@ -205,9 +216,9 @@ Merge_circRNA.gtf <- function(
   message(
     "Start Recording CircRNA IsoformState and IsoformType Information."
   )
-  results_df_with_IsoformType = results_df_with_seqinfo
+  results_df_with_IsoformType <- results_df_with_seqinfo
 
-  results_df_with_IsoformType$IsoformType = NA
+  results_df_with_IsoformType$IsoformType <- NA
 
   # 步骤1：若包含 "Full"，则类型为 "Full"
   results_df_with_IsoformType$IsoformType[grepl(
@@ -215,20 +226,20 @@ Merge_circRNA.gtf <- function(
   )] <- "Full"
 
   # 步骤2：不含 "Full" 但含 "break"（忽略大小写），则类型为 "Break"
-  mask_break <- !grepl("Full", results_df_with_IsoformType$IsoformState) & 
+  mask_break <- !grepl("Full", results_df_with_IsoformType$IsoformState) &
     grepl("break", results_df_with_IsoformType$IsoformState, ignore.case = TRUE)
   results_df_with_IsoformType$IsoformType[mask_break] <- "Break"
 
   # 步骤3：不含 "Full" 和 "break" 但含 "only"，则类型为 "BSJOnly"
   mask_only <- !grepl(
     "Full", results_df_with_IsoformType$IsoformState
-  ) & 
+  ) &
     !grepl(
-      "break", results_df_with_IsoformType$IsoformState, 
+      "break", results_df_with_IsoformType$IsoformState,
       ignore.case = TRUE
-    ) & 
+    ) &
     grepl(
-      "only", results_df_with_IsoformType$IsoformState, 
+      "only", results_df_with_IsoformType$IsoformState,
       ignore.case = TRUE
     )
   results_df_with_IsoformType$IsoformType[mask_only] <- "BSJOnly"
@@ -243,7 +254,7 @@ Merge_circRNA.gtf <- function(
   )
 
   # 定义函数：对 ReferenceSource 字符串按特定顺序重组（Full > FLcircAS > IsoCirc > gtf）
-  ReCombineReferenceSource <- function(x) {
+  recombine_reference_source <- function(x) {
     if (is.na(x) || x == "") return(x)  # 处理缺失或空值
     parts <- unlist(strsplit(x, split = ","))
     
@@ -267,49 +278,49 @@ Merge_circRNA.gtf <- function(
   results_df_with_ReferenceSource <- results_df_with_IsoformType
   results_df_with_ReferenceSource$ReferenceSource <- sapply(
     results_df_with_ReferenceSource$ReferenceSource, 
-    ReCombineReferenceSource
+    recombine_reference_source
   )
 
   # 转换为 data.table 以便高效赋值
   data.table::setDT(results_df_with_ReferenceSource)
 
   # 初始化 ReferenceType 列
-  results_df_with_ReferenceSource$ReferenceType = NA
+  results_df_with_ReferenceSource$ReferenceType <- NA
   results_df_with_ReferenceSource[, ReferenceType := as.character(ReferenceType)]
 
   # 根据 ReferenceSource 内容分类 ReferenceType
   # idx1: 同时含 Full 和 Blood → "Sample/Blood"
-  idx1 <- grepl("Full", results_df_with_ReferenceSource$ReferenceSource) & 
+  idx1 <- grepl("Full", results_df_with_ReferenceSource$ReferenceSource) &
     grepl("Blood", results_df_with_ReferenceSource$ReferenceSource)
   results_df_with_ReferenceSource[idx1, c("ReferenceType")] <- list("Sample/Blood")
 
   # idx2: 含 Full、不含 Blood，但含 FLcircAS 或 IsoCirc → "Sample/non-Blood"
   idx2 <- grepl(
     "Full", results_df_with_ReferenceSource$ReferenceSource
-  ) & 
+  ) &
     !grepl(
       "Blood", results_df_with_ReferenceSource$ReferenceSource
-    ) & 
+    ) &
     (
-      grepl("FLcircAS", results_df_with_ReferenceSource$ReferenceSource) | 
+      grepl("FLcircAS", results_df_with_ReferenceSource$ReferenceSource) |
       grepl("IsoCirc", results_df_with_ReferenceSource$ReferenceSource)
     )
   results_df_with_ReferenceSource[idx2, c("ReferenceType")] <- 
     list("Sample/non-Blood")
 
   # idx3: 仅含 Full（无 Blood/FLcircAS/IsoCirc）→ "Sample"
-  idx3 <- grepl("\\bFull\\b", results_df_with_ReferenceSource$ReferenceSource) & 
+  idx3 <- grepl("\\bFull\\b", results_df_with_ReferenceSource$ReferenceSource) &
     !grepl("Blood|FLcircAS|IsoCirc", results_df_with_ReferenceSource$ReferenceSource)
   results_df_with_ReferenceSource[idx3, c("ReferenceType")] <- list("Sample")
 
   # idx4: 不含 Full，但含 Blood → "Blood"
-  idx4 <- !grepl("Full", results_df_with_ReferenceSource$ReferenceSource) & 
+  idx4 <- !grepl("Full", results_df_with_ReferenceSource$ReferenceSource) &
     grepl("Blood", results_df_with_ReferenceSource$ReferenceSource)
   results_df_with_ReferenceSource[idx4, c("ReferenceType")] <- list("Blood")
 
   # idx5: 不含 Full/Blood，但含 FLcircAS 或 IsoCirc → "non-Blood"
-  idx5 <- !grepl("Full|Blood", results_df_with_ReferenceSource$ReferenceSource) & 
-    (grepl("FLcircAS", results_df_with_ReferenceSource$ReferenceSource) | 
+  idx5 <- !grepl("Full|Blood", results_df_with_ReferenceSource$ReferenceSource) &
+    (grepl("FLcircAS", results_df_with_ReferenceSource$ReferenceSource) |
      grepl("IsoCirc", results_df_with_ReferenceSource$ReferenceSource))
   results_df_with_ReferenceSource[idx5, c("ReferenceType")] <- list("non-Blood")
 
