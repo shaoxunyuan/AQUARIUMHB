@@ -5,13 +5,16 @@
 #'
 #' @param SamplePath Dataframe containing sample paths (output from fread("DataPathFile.txt")).
 #' @param output_file Character, path for the output file (default: "final_circRNA.df.txt").
+#' @param parallel Boolean, whether to use parallel processing (default: TRUE).
+#' @param n_cores Integer, number of cores to use for parallel processing (default: NULL, auto-detect).
 #'
 #' @return Dataframe with merged circRNA isoform annotations.
 #'
 #' @importFrom rtracklayer import
-#' @importFrom dplyr distinct arrange select
-#' @importFrom data.table fread setDT
+#' @importFrom dplyr distinct arrange select mutate map map_dbl map_int map_chr
+#' @importFrom data.table fread setDT rbindlist
 #' @import purrr
+#' @importFrom parallel detectCores mclapply
 #'
 #' @examples
 #' \dontrun{
@@ -20,33 +23,60 @@
 #' }
 #'
 #' @export
-Merge_circRNA.gtf <- function(SamplePath, output_file = "final_circRNA.datatable.txt") {
+Merge_circRNA.gtf <- function(SamplePath, output_file = "final_circRNA.datatable.txt", parallel = TRUE, n_cores = NULL) {
   
   # library(rtracklayer);library(dplyr);library(data.table);library(purrr);
   # 定义 isoform_state 的优先级顺序（用于后续排序）
   isoform_state_level <- c("Full", "breakinRef_ref", "breakinRef_gtf", "breakoutRef_gtf", "onlyinRef_ref", "onlyoutRef_gtf")
   
   # 收集所有样本路径下的 GTF 文件路径
-  filelist <- character()
-  for (i in 1:nrow(SamplePath)) {
-	      files <- list.files(
-	      paste0(SamplePath$FullPath[i], "/quant/"),
-	      pattern = "^(circRNA_full|circRNA_break|circRNA_only)\\.gtf$",
-	      full.names = TRUE
-      )
-  filelist <- append(filelist, files)
+  filelist <- unlist(lapply(1:nrow(SamplePath), function(i) {
+    list.files(
+      paste0(SamplePath$FullPath[i], "/quant/"),
+      pattern = "^(circRNA_full|circRNA_break|circRNA_only)\\.gtf$",
+      full.names = TRUE
+    )
+  }))
+  
+  # 自动检测核心数
+  if (is.null(n_cores)) {
+    # 确保 parallel 包可用
+    if (!requireNamespace("parallel", quietly = TRUE)) {
+      warning("parallel package not available, using sequential processing")
+      n_cores <- 1
+    } else {
+      n_cores <- max(1, parallel::detectCores() - 1)
+    }
   }
   
-  # 逐个读取 GTF 文件并转换为 data.frame，存入列表
-  gtf_list <- list()
-  for (i in seq_along(filelist)) {
-    message("Processing (", i, "/", length(filelist), "): ", filelist[i])
-    gtf_df <- import(filelist[i]) %>% as.data.frame()
-    gtf_list[[i]] <- gtf_df
+  # 高效读取 GTF 文件
+  message("Reading GTF files...")
+  if (parallel && n_cores > 1 && requireNamespace("parallel", quietly = TRUE)) {
+    gtf_list <- parallel::mclapply(filelist, function(file) {
+      tryCatch({
+        import(file) %>% as.data.frame()
+      }, error = function(e) {
+        message("Error reading ", file, ": ", e$message)
+        return(NULL)
+      })
+    }, mc.cores = n_cores)
+  } else {
+    gtf_list <- lapply(filelist, function(file) {
+      tryCatch({
+        import(file) %>% as.data.frame()
+      }, error = function(e) {
+        message("Error reading ", file, ": ", e$message)
+        return(NULL)
+      })
+    })
   }
   
-  # 合并所有 GTF 数据框为一个大表
-  merged_gtf <- do.call(rbind, gtf_list)
+  # 过滤掉 NULL 结果
+  gtf_list <- Filter(Negate(is.null), gtf_list)
+  
+  # 合并所有 GTF 数据框为一个大表（使用 data.table 提高速度）
+  message("Merging GTF data...")
+  merged_gtf <- rbindlist(gtf_list, fill = TRUE)
   rownames(merged_gtf) <- NULL
   
   # 标准化列名：将 rtracklayer 导入的列名统一为自定义名称
@@ -65,194 +95,158 @@ Merge_circRNA.gtf <- function(SamplePath, output_file = "final_circRNA.datatable
   message("Total records after merging: ", nrow(merged_gtf))
   message("Unique transcript IDs: ", length(unique(merged_gtf$transcript_id)))
   
-  # 按 transcript_id 分组，准备后续处理
-  gtf_by_transcript <- split(merged_gtf, merged_gtf$transcript_id)
+  # 转换为 data.table 以提高分组处理速度
+  setDT(merged_gtf)
   
-  # 定义处理单个转录本组的函数：
-  # 将 isoform_state 转为有序因子后拼接成字符串，并移除原始列
-  process_transcript <- function(transcript_df) {
-    # 转换为有序因子以保留状态优先级
-    ordered_states <- factor(transcript_df$isoform_state, levels = isoform_state_level, ordered = TRUE)
-    
-    # 拼接所有状态为逗号分隔字符串
-    transcript_df$isoformstate <- paste(ordered_states, collapse = ",")
-    
-    # 移除原始 isoform_state 列并去重
-    transcript_df %>% select(-isoform_state) %>% distinct()
-  }
+  # 高效处理转录本状态 - 使用 data.table 分组操作
+  message("Processing transcript states...")
+  results_df <- merged_gtf[, {
+    # 对每个转录本组，按优先级排序并拼接状态
+    ordered_states <- factor(isoform_state, levels = isoform_state_level, ordered = TRUE)
+    unique_states <- unique(ordered_states)
+    sorted_states <- sort(unique_states)
+    list(
+      Chr = unique(Chr)[1],
+      Strand = unique(strand)[1],
+      bsj = unique(bsj)[1],
+      isoformID = unique(transcript_id)[1],
+      IsoformState = paste(sorted_states, collapse = ","),
+      ReferenceSource = paste(unique(ReferenceSource), collapse = ",")
+    )
+  }, by = transcript_id]
   
-  # 对每个转录本组应用处理函数
-  processed_list <- lapply(gtf_by_transcript, process_transcript)
-  results_df <- do.call(rbind, processed_list)
-  rownames(results_df) <- NULL
-  
-  # 重命名关键列为更规范的名称
-  colnames(results_df)[which(colnames(results_df) == "transcript_id")] <- "isoformID"
-  colnames(results_df)[which(colnames(results_df) == "isoformstate")] <- "IsoformState"
-  colnames(results_df)[which(colnames(results_df) == "strand")] <- "Strand"
-  
-  # 定义从 isoformID 解析序列信息的函数
+  # 定义向量化的 isoformID 解析函数
   isoform_sequence_info <- function(isoformID) {
-        parts <- strsplit(isoformID, "|", fixed = TRUE)[[1]]
-		chr    <- parts[1]
-		starts <- as.numeric(strsplit(parts[2], ",")[[1]])
-		ends   <- as.numeric(strsplit(parts[3], ",")[[1]])
-		Strand <- parts[4]   # 本來就沒逗號，不要 strsplit！
-        
-        if (length(starts) != length(ends)) {
-          stop("外显子起点和终点数量不匹配")
-        }
-        
-        ExonCount        <- length(starts)                     # 外显子数量
-        ExonCoordinate   <- paste0(paste0(starts, "-", ends), collapse = ",")
-        exon_lengths     <- ends - starts + 1                  # 单个外显子长度（包含首尾）
-        total_length     <- sum(exon_lengths)                  # 总外显子长度
-        
-        # 根据链方向确定转录本起止位置
-        if (parts[4] == "+") {
-          transcript_start <- min(starts)
-          transcript_end   <- max(ends)
-        } else if (parts[4] == "-") {
-          transcript_start <- max(ends)
-          transcript_end   <- min(starts)
-        } else {
-          stop("链方向必须是'+'或'-'")
-        }
-        
-        bsj     <- paste0(gsub("chr", "", chr), ":", transcript_start, "|", transcript_end)
-        BSJ_ID  <- paste0(chr, "|", transcript_start, "|", transcript_end, "|", Strand)
-        GenomicLength <- transcript_end - transcript_start + 1
-        IsoformLength <- sum(exon_lengths)
-        
-        # 返回解析结果（list 格式）
-        list(
-          BSJ_ID         = BSJ_ID,
-          isoformID      = isoformID,
-          Chr            = chr,
-          circRNAStart   = transcript_start,
-          circRNAEnd     = transcript_end,
-          Strand         = Strand,
-          GenomicLength  = GenomicLength,
-          IsoformLength  = IsoformLength,
-          ExonCount      = length(starts),
-          ExonCoordinate = ExonCoordinate,
-          ExonLength     = paste(exon_lengths, collapse = ",")
-        )
+    # 向量化处理 isoformID 解析
+    parts_list <- strsplit(isoformID, "|", fixed = TRUE)
+    
+    chr <- sapply(parts_list, function(x) x[1])
+    starts_list <- lapply(parts_list, function(x) as.numeric(strsplit(x[2], ",")[[1]]))
+    ends_list <- lapply(parts_list, function(x) as.numeric(strsplit(x[3], ",")[[1]]))
+    Strand <- sapply(parts_list, function(x) x[4])
+    
+    # 计算外显子信息
+    ExonCount <- sapply(starts_list, length)
+    ExonCoordinate <- mapply(function(s, e) paste(paste(s, e, sep = "-"), collapse = ","), starts_list, ends_list)
+    exon_lengths_list <- mapply(function(s, e) e - s + 1, starts_list, ends_list, SIMPLIFY = FALSE)
+    IsoformLength <- sapply(exon_lengths_list, sum)
+    ExonLength <- sapply(exon_lengths_list, function(x) paste(x, collapse = ","))
+    
+    # 计算转录本起止位置
+    transcript_start <- mapply(function(s, e, str) {
+      if (str == "+") min(s) else max(e)
+    }, starts_list, ends_list, Strand)
+    
+    transcript_end <- mapply(function(s, e, str) {
+      if (str == "+") max(e) else min(s)
+    }, starts_list, ends_list, Strand)
+    
+    # 计算其他信息
+    bsj <- paste0(gsub("chr", "", chr), ":", transcript_start, "|", transcript_end)
+    BSJ_ID <- paste(chr, transcript_start, transcript_end, Strand, sep = "|")
+    GenomicLength <- transcript_end - transcript_start + 1
+    
+    # 返回结果列表
+    list(
+      BSJ_ID = BSJ_ID,
+      chr = chr,
+      circRNAStart = transcript_start,
+      circRNAEnd = transcript_end,
+      Strand = Strand,
+      GenomicLength = GenomicLength,
+      IsoformLength = IsoformLength,
+      ExonCount = ExonCount,
+      ExonCoordinate = ExonCoordinate,
+      ExonLength = ExonLength,
+      bsj = bsj
+    )
   }
   
-  # 使用 purrr::map 对每个 isoformID 调用解析函数，并展开为新列
-  results_df <- results_df %>% mutate(isoformID = as.character(isoformID)) 
-  results_df_with_seqinfo <- results_df %>%
-      mutate(transcript_info = map(isoformID, isoform_sequence_info)) %>%
-      mutate(
-        circRNAStart               = map_dbl(transcript_info, ~ .x$circRNAStart),
-        circRNAEnd                 = map_dbl(transcript_info, ~ .x$circRNAEnd),
-        ExonCount          = map_int(transcript_info, ~ .x$ExonCount),
-        ExonLength         = map_chr(transcript_info, ~ .x$ExonLength),
-        IsoformLength   = map_dbl(transcript_info, ~ .x$IsoformLength),
-        Chr                 = map_chr(transcript_info, ~ .x$Chr),
-        Strand              = map_chr(transcript_info, ~ .x$Strand),
-        GenomicLength      = map_dbl(transcript_info, ~ .x$GenomicLength),
-        BSJ_ID              = map_chr(transcript_info, ~ .x$BSJ_ID),
-        ExonCoordinate     = map_chr(transcript_info, ~ .x$ExonCoordinate)
-      ) %>%
-      select(-transcript_info)
+  # 使用向量化函数处理所有 isoformID
+  message("Parsing isoform IDs...")
+  seq_info <- isoform_sequence_info(results_df$isoformID)
+  
+  # 将解析结果添加到数据框
+  results_df_with_seqinfo <- results_df[, c("bsj", "isoformID", "Chr", "Strand", "IsoformState", "ReferenceSource")]
+  results_df_with_seqinfo$BSJ_ID <- seq_info$BSJ_ID
+  results_df_with_seqinfo$circRNAStart <- seq_info$circRNAStart
+  results_df_with_seqinfo$circRNAEnd <- seq_info$circRNAEnd
+  results_df_with_seqinfo$GenomicLength <- seq_info$GenomicLength
+  results_df_with_seqinfo$IsoformLength <- seq_info$IsoformLength
+  results_df_with_seqinfo$ExonCount <- seq_info$ExonCount
+  results_df_with_seqinfo$ExonCoordinate <- seq_info$ExonCoordinate
+  results_df_with_seqinfo$ExonLength <- seq_info$ExonLength
 
   # 调整最终输出列的顺序
-  results_df_with_seqinfo = results_df_with_seqinfo[,c("bsj","BSJ_ID","isoformID","Chr","circRNAStart","circRNAEnd","Strand",
-                                                       "GenomicLength","IsoformLength","ExonCount","ExonCoordinate","ExonLength",
-                                                       "IsoformState","ReferenceSource")]
+  setcolorder(results_df_with_seqinfo, c("bsj","BSJ_ID","isoformID","Chr","circRNAStart","circRNAEnd","Strand",
+                                          "GenomicLength","IsoformLength","ExonCount","ExonCoordinate","ExonLength",
+                                          "IsoformState","ReferenceSource"))
 
   message("Finished Recording CircRNA Isoform Sequence Information.")
 
+  # 转换为 data.table 以提高后续操作速度
+  setDT(results_df_with_seqinfo)
   
   # 开始根据 IsoformState 字段推断 IsoformType 类型
   message("Start Recording CircRNA IsoformState and IsoformType Information.")
-  results_df_with_IsoformType = results_df_with_seqinfo
-
-  results_df_with_IsoformType$IsoformType = NA
-
-  # 步骤1：若包含 "Full"，则类型为 "Full"
-  results_df_with_IsoformType$IsoformType[grepl("Full", results_df_with_IsoformType$IsoformState)] <- "Full"
-
-  # 步骤2：不含 "Full" 但含 "break"（忽略大小写），则类型为 "Break"
-  mask_break <- !grepl("Full", results_df_with_IsoformType$IsoformState) & grepl("break", results_df_with_IsoformType$IsoformState, ignore.case = TRUE)
-  results_df_with_IsoformType$IsoformType[mask_break] <- "Break"
-
-  # 步骤3：不含 "Full" 和 "break" 但含 "only"，则类型为 "BSJOnly"
-  mask_only <- !grepl("Full", results_df_with_IsoformType$IsoformState) & 
-              !grepl("break", results_df_with_IsoformType$IsoformState, ignore.case = TRUE) & 
-              grepl("only", results_df_with_IsoformType$IsoformState, ignore.case = TRUE)
-  results_df_with_IsoformType$IsoformType[mask_only] <- "BSJOnly"
+  
+  # 使用 data.table 高效操作添加 IsoformType 列
+  results_df_with_seqinfo[, IsoformType := NA_character_]
+  results_df_with_seqinfo[grepl("Full", IsoformState), IsoformType := "Full"]
+  results_df_with_seqinfo[!grepl("Full", IsoformState) & grepl("break", IsoformState, ignore.case = TRUE), IsoformType := "Break"]
+  results_df_with_seqinfo[!grepl("Full", IsoformState) & !grepl("break", IsoformState, ignore.case = TRUE) & grepl("only", IsoformState, ignore.case = TRUE), IsoformType := "BSJOnly"]
 
   message("Finished Recording CircRNA IsoformState and IsoformType Information.")
 
   # 开始处理 ReferenceSource 字段，标准化其格式并推断 ReferenceType
   message("Start Recording CircRNA ReferenceSource and ReferenceType Information.")
 
-  # 定义函数：对 ReferenceSource 字符串按特定顺序重组（Full > FLcircAS > IsoCirc > gtf）
+  # 定义向量化函数：对 ReferenceSource 字符串按特定顺序重组
   ReCombineReferenceSource <- function(x) {
-    if (is.na(x) || x == "") return(x)  # 处理缺失或空值
-    parts <- unlist(strsplit(x, split = ","))
-    
-    full_part    <- if ("Full" %in% parts) "Full" else character(0)
-    flcircas_part <- parts[grep("FLcircAS", parts, fixed = FALSE)]
-    isocirc_part  <- parts[grep("IsoCirc", parts, fixed = FALSE)]
-    gtf_part     <- if ("gtf" %in% parts) "gtf" else character(0)
-    
-    all_parts <- c(
-      if (length(full_part) > 0) paste(full_part, collapse = ","),
-      if (length(flcircas_part) > 0) paste(flcircas_part, collapse = ","),
-      if (length(isocirc_part) > 0) paste(isocirc_part, collapse = ","),
-      if (length(gtf_part) > 0) paste(gtf_part, collapse = ",")
-    )
-    
-    if (length(all_parts) == 0) return("")
-    paste(all_parts, collapse = ";")
+    # 向量化处理
+    sapply(x, function(item) {
+      if (is.na(item) || item == "") return(item)
+      parts <- unlist(strsplit(item, split = ","))
+      
+      full_part    <- if ("Full" %in% parts) "Full" else character(0)
+      flcircas_part <- parts[grep("FLcircAS", parts, fixed = FALSE)]
+      isocirc_part  <- parts[grep("IsoCirc", parts, fixed = FALSE)]
+      gtf_part     <- if ("gtf" %in% parts) "gtf" else character(0)
+      
+      all_parts <- c(
+        if (length(full_part) > 0) paste(full_part, collapse = ","),
+        if (length(flcircas_part) > 0) paste(flcircas_part, collapse = ","),
+        if (length(isocirc_part) > 0) paste(isocirc_part, collapse = ","),
+        if (length(gtf_part) > 0) paste(gtf_part, collapse = ",")
+      )
+      
+      if (length(all_parts) == 0) return("")
+      paste(all_parts, collapse = ";")
+    })
   }
 
   # 应用重组函数到 ReferenceSource 列
-  results_df_with_ReferenceSource = results_df_with_IsoformType
-  results_df_with_ReferenceSource$ReferenceSource <- sapply(results_df_with_ReferenceSource$ReferenceSource, ReCombineReferenceSource)
-
-  # 转换为 data.table 以便高效赋值
-  data.table::setDT(results_df_with_ReferenceSource)
+  results_df_with_seqinfo[, ReferenceSource := ReCombineReferenceSource(ReferenceSource)]
 
   # 初始化 ReferenceType 列
-  results_df_with_ReferenceSource$ReferenceType = NA
-  results_df_with_ReferenceSource[, ReferenceType := as.character(ReferenceType)]
+  results_df_with_seqinfo[, ReferenceType := NA_character_]
 
-  # 根据 ReferenceSource 内容分类 ReferenceType
-  # idx1: 同时含 Full 和 Blood → "Sample/Blood"
-  idx1 <- grepl("Full", results_df_with_ReferenceSource$ReferenceSource) & grepl("Blood", results_df_with_ReferenceSource$ReferenceSource)
-  results_df_with_ReferenceSource[idx1, c( "ReferenceType")] <- list( "Sample/Blood")
-
-  # idx2: 含 Full、不含 Blood，但含 FLcircAS 或 IsoCirc → "Sample/non-Blood"
-  idx2 <- grepl("Full", results_df_with_ReferenceSource$ReferenceSource) & !grepl("Blood", results_df_with_ReferenceSource$ReferenceSource) & (grepl("FLcircAS", results_df_with_ReferenceSource$ReferenceSource) | grepl("IsoCirc", results_df_with_ReferenceSource$ReferenceSource))
-  results_df_with_ReferenceSource[idx2, c( "ReferenceType")] <- list( "Sample/non-Blood")
-
-  # idx3: 仅含 Full（无 Blood/FLcircAS/IsoCirc）→ "Sample"
-  idx3 <- grepl("\\bFull\\b", results_df_with_ReferenceSource$ReferenceSource) & !grepl("Blood|FLcircAS|IsoCirc", results_df_with_ReferenceSource$ReferenceSource)
-  results_df_with_ReferenceSource[idx3, c( "ReferenceType")] <- list( "Sample")
-
-  # idx4: 不含 Full，但含 Blood → "Blood"
-  idx4 <- !grepl("Full", results_df_with_ReferenceSource$ReferenceSource) & grepl("Blood", results_df_with_ReferenceSource$ReferenceSource)
-  results_df_with_ReferenceSource[idx4, c( "ReferenceType")] <- list( "Blood")
-
-  # idx5: 不含 Full/Blood，但含 FLcircAS 或 IsoCirc → "non-Blood"
-  idx5 <- !grepl("Full|Blood", results_df_with_ReferenceSource$ReferenceSource) & (grepl("FLcircAS", results_df_with_ReferenceSource$ReferenceSource) | grepl("IsoCirc", results_df_with_ReferenceSource$ReferenceSource))
-  results_df_with_ReferenceSource[idx5, c( "ReferenceType")] <- list( "non-Blood")
-
-  # idx6: 仅含 gtf → "gtf"
-  idx6 <- grepl("\\bgtf\\b", results_df_with_ReferenceSource$ReferenceSource)
-  results_df_with_ReferenceSource[idx6, c( "ReferenceType")] <- list( "gtf")
+  # 根据 ReferenceSource 内容分类 ReferenceType（使用 data.table 高效操作）
+  results_df_with_seqinfo[grepl("Full", ReferenceSource) & grepl("Blood", ReferenceSource), ReferenceType := "Sample/Blood"]
+  results_df_with_seqinfo[grepl("Full", ReferenceSource) & !grepl("Blood", ReferenceSource) & (grepl("FLcircAS", ReferenceSource) | grepl("IsoCirc", ReferenceSource)), ReferenceType := "Sample/non-Blood"]
+  results_df_with_seqinfo[grepl("\\bFull\\b", ReferenceSource) & !grepl("Blood|FLcircAS|IsoCirc", ReferenceSource), ReferenceType := "Sample"]
+  results_df_with_seqinfo[!grepl("Full", ReferenceSource) & grepl("Blood", ReferenceSource), ReferenceType := "Blood"]
+  results_df_with_seqinfo[!grepl("Full|Blood", ReferenceSource) & (grepl("FLcircAS", ReferenceSource) | grepl("IsoCirc", ReferenceSource)), ReferenceType := "non-Blood"]
+  results_df_with_seqinfo[grepl("\\bgtf\\b", ReferenceSource), ReferenceType := "gtf"]
 
   message("Finished Recording CircRNA ReferenceSource and ReferenceType Information.")
 
-  
-  # 将最终结果写入指定输出文件（制表符分隔，无行名和引号）
-  write.table(results_df_with_ReferenceSource, file = output_file, row.names = FALSE, quote = FALSE, sep = "\t")
+  # 将最终结果写入指定输出文件（使用 data.table 的 fwrite 提高速度）
+  message("Writing output file...")
+  data.table::fwrite(results_df_with_seqinfo, file = output_file, row.names = FALSE, quote = FALSE, sep = "\t")
 
+  # 返回结果
+  return(as.data.frame(results_df_with_seqinfo))
 }
 
 
