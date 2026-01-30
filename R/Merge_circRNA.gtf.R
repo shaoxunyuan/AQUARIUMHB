@@ -19,14 +19,14 @@
 #' @examples
 #' \dontrun{
 #' sample_path <- loadSamplePathFile()
-#' merged_isoforms <- merge_circRNA_gtf(
+#' merged_isoforms <- Merge_circRNA.gtf(
 #'   sample_path,
 #'   output_file = "final_circRNA.datatable.txt"
 #' )
 #' }
 #'
 #' @export
-merge_circRNA_gtf <- function(
+Merge_circRNA.gtf <- function(
   sample_path,
   output_file = "final_circRNA.datatable.txt"
 ) {
