@@ -12,7 +12,7 @@
 #' @return Dataframe with merged circRNA isoform annotations.
 #'
 #' @importFrom rtracklayer import
-#' @importFrom data.table fread fwrite rbindlist setDT unique
+#' @importFrom data.table fread fwrite rbindlist setDT
 #' @importFrom stringi stri_match_first_regex stri_split_fixed
 #'
 #' @examples
@@ -217,7 +217,7 @@ Merge_circRNA.gtf <- function(
 
   # 只保留关键列并去重（对应原脚本 select + distinct）
   DT <- DT[, .(Strand, bsj, isoformID, isoform_state, ReferenceSource)]
-  DT <- data.table::unique(DT)
+  DT <- unique(DT)
 
   message("Total records after merging: ", nrow(DT))
   message("Unique isoform IDs: ", data.table::uniqueN(DT$isoformID))
