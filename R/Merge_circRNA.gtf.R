@@ -11,6 +11,7 @@
 #'
 #' @return Dataframe with merged circRNA isoform annotations.
 #'
+#' @importFrom rtracklayer import
 #' @importFrom data.table fread fwrite rbindlist setDT unique
 #' @importFrom stringi stri_match_first_regex stri_split_fixed
 #'
@@ -38,6 +39,9 @@ Merge_circRNA.gtf <- function(
   if (!requireNamespace("stringi", quietly = TRUE)) {
     stop("Package 'stringi' is required.")
   }
+  if (!requireNamespace("rtracklayer", quietly = TRUE)) {
+    stop("Package 'rtracklayer' is required (used as fallback for malformed GTFs).")
+  }
 
   isoform_state_level <- c(
     "Full", "breakinRef_ref", "breakinRef_gtf",
@@ -58,16 +62,124 @@ Merge_circRNA.gtf <- function(
   }
 
   read_one_gtf_fast <- function(f) {
-    dt <- data.table::fread(
-      f,
-      sep = "\t",
-      header = FALSE,
-      quote = "",
-      col.names = c("V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "attr"),
-      select = c("V1", "V7", "attr"),
-      showProgress = FALSE
+    # Fast path: fread standard 9-col GTF (tab-delimited). Some projects may ship
+    # malformed/space-delimited GTF; in that case we fallback to rtracklayer::import.
+    dt <- tryCatch(
+      data.table::fread(
+        f,
+        sep = "\t",
+        header = FALSE,
+        quote = "",
+        fill = TRUE,
+        comment.char = "#",
+        showProgress = FALSE
+      ),
+      error = function(e) e
     )
-    data.table::setnames(dt, c("V1", "V7"), c("Chr_raw", "Strand"))
+
+    # Secondary fast path: read as raw lines then regex-split first 8 fields + attr.
+    # This handles files where the delimiter isn't a clean tab, or where fread's
+    # tab parsing yields <9 columns.
+    if (inherits(dt, "error") || ncol(dt) < 9) {
+      lines_dt <- tryCatch(
+        data.table::fread(
+          f,
+          sep = "\n",
+          header = FALSE,
+          quote = "",
+          fill = TRUE,
+          comment.char = "#",
+          showProgress = FALSE
+        ),
+        error = function(e) e
+      )
+
+      if (!inherits(lines_dt, "error") && ncol(lines_dt) >= 1) {
+        ln <- lines_dt[[1]]
+        # Capture: seqname source feature start end score strand frame <rest as attr>
+        m <- stringi::stri_match_first_regex(
+          ln,
+          "^(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(.*)$"
+        )
+        # If match succeeded, m is matrix with 10 cols: full + 9 captures
+        ok <- !is.na(m[, 1])
+        if (any(ok)) {
+          attr <- m[ok, 10]
+          strand <- m[ok, 7]
+
+          m_bsj <- stringi::stri_match_first_regex(attr, '\\bbsj "([^"]+)"')
+          m_tid <- stringi::stri_match_first_regex(attr, '\\btranscript_id "([^"]+)"')
+          m_iso <- stringi::stri_match_first_regex(attr, '\\bisoform_state "([^"]+)"')
+          m_ref <- stringi::stri_match_first_regex(attr, '\\bReferenceSource "([^"]+)"')
+
+          out <- data.table::data.table(
+            Strand = strand,
+            bsj = m_bsj[, 2],
+            isoformID = m_tid[, 2],
+            isoform_state = m_iso[, 2],
+            ReferenceSource = m_ref[, 2]
+          )
+
+          # Normalize: some files contain huge whitespace inside quoted values
+          out[, `:=`(
+            isoformID = stringi::stri_replace_all_regex(isoformID, "\\s+", ""),
+            isoform_state = stringi::stri_replace_all_regex(isoform_state, "\\s+", ""),
+            bsj = stringi::stri_replace_all_regex(bsj, "\\s+", ""),
+            ReferenceSource = stringi::stri_replace_all_regex(ReferenceSource, "\\s+", "")
+          )]
+
+          return(out)
+        }
+      }
+
+      gr <- rtracklayer::import(f)
+      df <- as.data.frame(gr)
+
+      # rtracklayer column names are stable-ish; normalize to expected fields
+      if ("seqnames" %in% colnames(df)) df$Chr <- as.character(df$seqnames)
+      if ("strand" %in% colnames(df)) df$Strand <- as.character(df$strand)
+
+      # attributes may come as dedicated columns depending on import behavior
+      # Prefer direct columns; otherwise try to parse from a single 'attribute' field.
+      if (!"bsj" %in% colnames(df) && "bsj" %in% names(mcols(gr))) {
+        df$bsj <- as.character(mcols(gr)$bsj)
+      }
+      if (!"transcript_id" %in% colnames(df) && "transcript_id" %in% names(mcols(gr))) {
+        df$transcript_id <- as.character(mcols(gr)$transcript_id)
+      }
+      if (!"isoform_state" %in% colnames(df) && "isoform_state" %in% names(mcols(gr))) {
+        df$isoform_state <- as.character(mcols(gr)$isoform_state)
+      }
+      if (!"ReferenceSource" %in% colnames(df) && "ReferenceSource" %in% names(mcols(gr))) {
+        df$ReferenceSource <- as.character(mcols(gr)$ReferenceSource)
+      }
+
+      out <- data.table::as.data.table(df)[
+        ,
+        .(
+          Strand = Strand,
+          bsj = bsj,
+          isoformID = transcript_id,
+          isoform_state = isoform_state,
+          ReferenceSource = ReferenceSource
+        )
+      ]
+      out[, `:=`(
+        isoformID = stringi::stri_replace_all_regex(isoformID, "\\s+", ""),
+        isoform_state = stringi::stri_replace_all_regex(isoform_state, "\\s+", ""),
+        bsj = stringi::stri_replace_all_regex(bsj, "\\s+", ""),
+        ReferenceSource = stringi::stri_replace_all_regex(ReferenceSource, "\\s+", "")
+      )]
+      return(out)
+    }
+
+    # Standard GTF: first 8 fixed cols + attributes in V9
+    data.table::setnames(
+      dt,
+      old = names(dt)[1:9],
+      new = c("V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "attr")
+    )
+    dt <- dt[, .(Strand = V7, attr)]
 
     m_bsj <- stringi::stri_match_first_regex(dt$attr, '\\bbsj "([^"]+)"')
     m_tid <- stringi::stri_match_first_regex(dt$attr, '\\btranscript_id "([^"]+)"')
@@ -80,7 +192,15 @@ Merge_circRNA.gtf <- function(
       isoform_state = m_iso[, 2],
       ReferenceSource = m_ref[, 2]
     )]
-    dt[, c("Chr_raw", "attr") := NULL]
+    dt[, attr := NULL]
+
+    # Normalize whitespace inside quoted values (some projects contain line-wrap spaces)
+    dt[, `:=`(
+      isoformID = stringi::stri_replace_all_regex(isoformID, "\\s+", ""),
+      isoform_state = stringi::stri_replace_all_regex(isoform_state, "\\s+", ""),
+      bsj = stringi::stri_replace_all_regex(bsj, "\\s+", ""),
+      ReferenceSource = stringi::stri_replace_all_regex(ReferenceSource, "\\s+", "")
+    )]
     dt
   }
 
